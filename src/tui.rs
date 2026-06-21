@@ -185,9 +185,10 @@ fn render_confession_box(
     );
 
     if selected {
-        block = block.title(
-            Line::from(Span::styled(" ▶ ", Style::default().fg(Color::Yellow))),
-        );
+        block = block.title(Line::from(Span::styled(
+            " ▶ ",
+            Style::default().fg(Color::Yellow),
+        )));
     }
 
     let text_style = if c.votes > 50 {

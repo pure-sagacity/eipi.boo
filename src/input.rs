@@ -29,7 +29,10 @@ fn parse_sgr_mouse(data: &[u8]) -> Option<(KeyEvent, usize)> {
     let row: u16 = parts.next()?.parse().ok()?;
 
     if is_press && button == 0 {
-        Some((KeyEvent::MouseClick(col.saturating_sub(1), row.saturating_sub(1)), end + 1))
+        Some((
+            KeyEvent::MouseClick(col.saturating_sub(1), row.saturating_sub(1)),
+            end + 1,
+        ))
     } else if button == 64 {
         Some((KeyEvent::Up, end + 1))
     } else if button == 65 {

@@ -268,7 +268,13 @@ impl ClientHandler {
     }
 
     fn init_terminal(&mut self) -> Vec<u8> {
-        crossterm::execute!(self.writer, EnterAlternateScreen, cursor::Hide, EnableMouseCapture).ok();
+        crossterm::execute!(
+            self.writer,
+            EnterAlternateScreen,
+            cursor::Hide,
+            EnableMouseCapture
+        )
+        .ok();
         let init_bytes = self.writer.drain();
 
         match crate::tui::create_terminal(self.writer.clone(), self.width, self.height) {
@@ -283,7 +289,13 @@ impl ClientHandler {
     }
 
     fn cleanup_bytes(&mut self) -> Vec<u8> {
-        crossterm::execute!(self.writer, DisableMouseCapture, cursor::Show, LeaveAlternateScreen).ok();
+        crossterm::execute!(
+            self.writer,
+            DisableMouseCapture,
+            cursor::Show,
+            LeaveAlternateScreen
+        )
+        .ok();
         self.writer.drain()
     }
 }
