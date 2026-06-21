@@ -60,6 +60,8 @@ pub struct RenderState<'a> {
     pub mode: InputMode,
     pub compose_buf: &'a str,
     pub message: Option<&'a str>,
+    pub total_confessions: i64,
+    pub total_humans: i64,
 }
 
 pub fn render(frame: &mut Frame, state: &RenderState) {
@@ -129,7 +131,10 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
             if let Some(msg) = state.message {
                 msg.to_string()
             } else {
-                " [←↑↓→] Scroll  [Tab] Select  [Enter] Upvote  [n] New  [q] Quit".to_string()
+                format!(
+                    " {} confessions by {} humans | [hjkl/←↑↓→] Scroll  [Tab] Select  [Enter] Upvote  [n] New  [q] Quit",
+                    state.total_confessions, state.total_humans
+                )
             }
         }
         InputMode::Compose => {

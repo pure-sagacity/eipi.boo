@@ -174,10 +174,10 @@ impl ClientHandler {
 
             match (&self.mode, &event) {
                 (InputMode::Browse, KeyEvent::Char('q')) => return true,
-                (InputMode::Browse, KeyEvent::Up) => self.cam_y -= 3,
-                (InputMode::Browse, KeyEvent::Down) => self.cam_y += 3,
-                (InputMode::Browse, KeyEvent::Left) => self.cam_x -= 5,
-                (InputMode::Browse, KeyEvent::Right) => self.cam_x += 5,
+                (InputMode::Browse, KeyEvent::Up | KeyEvent::Char('k')) => self.cam_y -= 3,
+                (InputMode::Browse, KeyEvent::Down | KeyEvent::Char('j')) => self.cam_y += 3,
+                (InputMode::Browse, KeyEvent::Left | KeyEvent::Char('h')) => self.cam_x -= 5,
+                (InputMode::Browse, KeyEvent::Right | KeyEvent::Char('l')) => self.cam_x += 5,
                 (InputMode::Browse, KeyEvent::Tab) => self.cycle_selection(),
                 (InputMode::Browse, KeyEvent::Enter) => self.upvote_selected(),
                 (InputMode::Browse, KeyEvent::Char('n')) => {
@@ -212,6 +212,11 @@ impl ClientHandler {
             return Vec::new();
         };
 
+        let (total_confessions, total_humans) = {
+            let db = self.shared.db.lock().unwrap();
+            db::stats(&db)
+        };
+
         let state = RenderState {
             confessions: &self.confessions,
             cam_x: self.cam_x,
@@ -220,6 +225,8 @@ impl ClientHandler {
             mode: self.mode,
             compose_buf: &self.compose_buf,
             message: self.message.as_deref(),
+            total_confessions,
+            total_humans,
         };
 
         match terminal.draw(|frame| {

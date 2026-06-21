@@ -110,3 +110,17 @@ pub fn posts_today(conn: &Connection, fingerprint: &str) -> i64 {
 }
 
 pub const DAILY_POST_LIMIT: i64 = 3;
+
+pub fn stats(conn: &Connection) -> (i64, i64) {
+    let confessions: i64 = conn
+        .query_row("SELECT COUNT(*) FROM confessions", [], |row| row.get(0))
+        .unwrap_or(0);
+    let humans: i64 = conn
+        .query_row(
+            "SELECT COUNT(DISTINCT author_fingerprint) FROM confessions",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    (confessions, humans)
+}
