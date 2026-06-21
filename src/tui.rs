@@ -60,8 +60,6 @@ pub struct RenderState<'a> {
     pub mode: InputMode,
     pub compose_buf: &'a str,
     pub message: Option<&'a str>,
-    #[allow(dead_code)]
-    pub fingerprint: &'a str,
 }
 
 pub fn render(frame: &mut Frame, state: &RenderState) {
