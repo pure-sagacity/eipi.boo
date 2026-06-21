@@ -212,11 +212,6 @@ impl ClientHandler {
             return Vec::new();
         };
 
-        let fp = self
-            .fingerprint
-            .clone()
-            .unwrap_or_else(|| "unknown".to_string());
-
         let state = RenderState {
             confessions: &self.confessions,
             cam_x: self.cam_x,
@@ -225,7 +220,6 @@ impl ClientHandler {
             mode: self.mode,
             compose_buf: &self.compose_buf,
             message: self.message.as_deref(),
-            fingerprint: &fp,
         };
 
         match terminal.draw(|frame| {
@@ -321,9 +315,12 @@ impl server::Handler for ClientHandler {
         data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        // Ghostty and some terminals send exec requests (e.g. terminfo setup)
+        // before the shell. Reject and close so they move on to the shell channel.
         let cmd = String::from_utf8_lossy(data);
         debug!("Exec request on channel {:?}: {}", channel_id, cmd);
         let _ = session.channel_failure(channel_id);
+        let _ = session.close(channel_id);
         Ok(())
     }
 
