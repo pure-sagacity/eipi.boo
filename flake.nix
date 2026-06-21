@@ -20,7 +20,7 @@
         default = pkgs.mkShell {
 
           packages = with pkgs; [
-          flyctl
+            flyctl
           ];
 
           shellHook = ''
