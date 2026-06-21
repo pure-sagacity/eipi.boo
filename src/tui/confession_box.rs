@@ -23,7 +23,7 @@ pub fn render(frame: &mut Frame, c: &Confession, area: Rect, selected: bool, has
 
     let heart = if has_voted { "󰋑" } else { "♥" };
     let reply_str = if c.reply_count > 0 {
-        format!("💬 {}  ", c.reply_count)
+        format!("󰍧 {}  ", c.reply_count)
     } else {
         String::new()
     };
