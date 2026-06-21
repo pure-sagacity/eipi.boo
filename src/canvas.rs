@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 use crate::confession::{BOX_WIDTH, Confession, confession_height};
 
@@ -40,7 +40,7 @@ fn overlaps_any(x: i64, y: i64, w: i64, h: i64, confessions: &[Confession], padd
 }
 
 pub fn random_position(confessions: &[Confession], new_text: &str) -> (i64, i64) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let count = confessions.len() as f64;
     let new_w = BOX_WIDTH as i64;
     let new_h = confession_height(new_text) as i64;
@@ -54,8 +54,8 @@ pub fn random_position(confessions: &[Confession], new_text: &str) -> (i64, i64)
         let extra = (attempt as i64 / 30) * (BOX_WIDTH as i64 + 4);
         let sx = spread_x + extra;
         let sy = spread_y + extra;
-        let x = rng.gen_range(-sx / 2..=sx / 2);
-        let y = rng.gen_range(-sy / 2..=sy / 2);
+        let x = rng.random_range(-sx / 2..=sx / 2);
+        let y = rng.random_range(-sy / 2..=sy / 2);
 
         if !overlaps_any(x, y, new_w, new_h, confessions, padding) {
             return (x, y);
@@ -67,7 +67,7 @@ pub fn random_position(confessions: &[Confession], new_text: &str) -> (i64, i64)
         .map(|c| c.y + confession_height(&c.text) as i64)
         .max()
         .unwrap_or(0);
-    let x = rng.gen_range(0..spread_x);
+    let x = rng.random_range(0..spread_x);
     (x, max_y + padding + 2)
 }
 

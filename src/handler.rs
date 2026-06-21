@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use async_trait::async_trait;
 use crossterm::cursor;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
@@ -9,7 +8,7 @@ use log::{debug, info, warn};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use russh::server::{self, Auth, Msg, Session};
-use russh::{Channel, ChannelId, CryptoVec};
+use russh::{Channel, ChannelId};
 
 use crate::canvas;
 use crate::confession::{self, Confession};
@@ -300,14 +299,13 @@ impl ClientHandler {
     }
 }
 
-#[async_trait]
 impl server::Handler for ClientHandler {
     type Error = anyhow::Error;
 
     async fn auth_publickey_offered(
         &mut self,
         _user: &str,
-        _key: &russh_keys::PublicKey,
+        _key: &russh::keys::PublicKey,
     ) -> Result<Auth, Self::Error> {
         Ok(Auth::Accept)
     }
@@ -315,9 +313,9 @@ impl server::Handler for ClientHandler {
     async fn auth_publickey(
         &mut self,
         _user: &str,
-        key: &russh_keys::PublicKey,
+        key: &russh::keys::PublicKey,
     ) -> Result<Auth, Self::Error> {
-        let fp = key.fingerprint(russh_keys::HashAlg::Sha256);
+        let fp = key.fingerprint(russh::keys::HashAlg::Sha256);
         self.fingerprint = Some(fp.to_string());
         info!("Auth accepted for fingerprint: {}", self.fingerprint_str());
         Ok(Auth::Accept)
@@ -386,7 +384,7 @@ impl server::Handler for ClientHandler {
         self.cam_y = cy;
 
         let init = self.init_terminal();
-        let _ = session.data(channel_id, CryptoVec::from(init));
+        let _ = session.data(channel_id, init);
 
         let visible = self.visible_indices();
         if !visible.is_empty() {
@@ -396,7 +394,7 @@ impl server::Handler for ClientHandler {
         let output = self.do_render();
         if !output.is_empty() {
             debug!("Initial render: {} bytes", output.len());
-            let _ = session.data(channel_id, CryptoVec::from(output));
+            let _ = session.data(channel_id, output);
         }
 
         Ok(())
@@ -427,7 +425,7 @@ impl server::Handler for ClientHandler {
         if should_quit {
             let cleanup = self.cleanup_bytes();
             if !cleanup.is_empty() {
-                let _ = session.data(channel_id, CryptoVec::from(cleanup));
+                let _ = session.data(channel_id, cleanup);
             }
             let _ = session.close(channel_id);
             return Ok(());
@@ -437,7 +435,7 @@ impl server::Handler for ClientHandler {
 
         let output = self.do_render();
         if !output.is_empty() {
-            let _ = session.data(channel_id, CryptoVec::from(output));
+            let _ = session.data(channel_id, output);
         }
 
         Ok(())
@@ -466,7 +464,7 @@ impl server::Handler for ClientHandler {
 
         let output = self.do_render();
         if !output.is_empty() {
-            let _ = session.data(channel_id, CryptoVec::from(output));
+            let _ = session.data(channel_id, output);
         }
 
         Ok(())

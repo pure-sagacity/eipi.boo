@@ -25,22 +25,22 @@ impl server::Server for SshServer {
     }
 }
 
-fn load_or_generate_host_key(path: &str) -> Result<russh_keys::PrivateKey> {
+fn load_or_generate_host_key(path: &str) -> Result<russh::keys::PrivateKey> {
     if Path::new(path).exists() {
         info!("Loading host key from {}", path);
-        let key = russh_keys::load_secret_key(path, None)?;
+        let key = russh::keys::load_secret_key(path, None)?;
         Ok(key)
     } else {
         info!("Generating new Ed25519 host key at {}", path);
         let key =
-            russh_keys::PrivateKey::random(&mut rand::thread_rng(), russh_keys::Algorithm::Ed25519)
+            russh::keys::PrivateKey::random(&mut rand::rng(), russh::keys::Algorithm::Ed25519)
                 .map_err(|e| anyhow::anyhow!("Failed to generate key: {}", e))?;
 
         if let Some(parent) = Path::new(path).parent() {
             std::fs::create_dir_all(parent)?;
         }
 
-        key.write_openssh_file(Path::new(path), ssh_key::LineEnding::LF)
+        key.write_openssh_file(Path::new(path), russh::keys::ssh_key::LineEnding::LF)
             .map_err(|e| anyhow::anyhow!("Failed to write host key: {}", e))?;
 
         Ok(key)
