@@ -35,6 +35,7 @@ pub(crate) struct ClientHandler {
     replies: Vec<Reply>,
     viewing_confession: Option<usize>,
     reply_scroll: usize,
+    card_index: usize,
     message: Option<String>,
     terminal: Option<Terminal<CrosstermBackend<TermWriter>>>,
     writer: TermWriter,
@@ -59,6 +60,7 @@ impl ClientHandler {
             replies: Vec::new(),
             viewing_confession: None,
             reply_scroll: 0,
+            card_index: 0,
             message: None,
             terminal: None,
             writer: TermWriter::default(),
@@ -283,6 +285,46 @@ impl ClientHandler {
                 (InputMode::Browse, KeyEvent::MouseClick(sx, sy)) => {
                     self.select_at_screen(*sx, *sy);
                 }
+                (InputMode::Browse, KeyEvent::Char(' '))
+                    if !self.confessions.is_empty() =>
+                {
+                    self.card_index = self.selected.unwrap_or(0);
+                    self.mode = InputMode::CardView;
+                }
+
+                (InputMode::CardView, KeyEvent::Right | KeyEvent::Char('l'))
+                    if !self.confessions.is_empty() =>
+                {
+                    self.card_index = (self.card_index + 1) % self.confessions.len();
+                    self.selected = Some(self.card_index);
+                }
+                (InputMode::CardView, KeyEvent::Left | KeyEvent::Char('h'))
+                    if !self.confessions.is_empty() =>
+                {
+                    self.card_index = if self.card_index == 0 {
+                        self.confessions.len() - 1
+                    } else {
+                        self.card_index - 1
+                    };
+                    self.selected = Some(self.card_index);
+                }
+                (InputMode::CardView, KeyEvent::Char('v')) => {
+                    self.selected = Some(self.card_index);
+                    self.upvote_selected();
+                }
+                (InputMode::CardView, KeyEvent::Enter) => {
+                    self.selected = Some(self.card_index);
+                    self.open_replies();
+                }
+                (InputMode::CardView, KeyEvent::Char('n')) => {
+                    self.mode = InputMode::Compose;
+                    self.compose_buf.clear();
+                }
+                (InputMode::CardView, KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char(' ')) => {
+                    self.selected = Some(self.card_index);
+                    self.mode = InputMode::Browse;
+                }
+
                 (InputMode::Browse, KeyEvent::Char('?')) => {
                     self.message = Some(
                         "bugs/features → https://github.com/pwnwriter/eipi.boo/issues/new"
@@ -403,6 +445,7 @@ impl ClientHandler {
             replies: &self.replies,
             viewing_confession: viewing,
             reply_scroll: self.reply_scroll,
+            card_index: self.card_index,
         };
 
         match terminal.draw(|frame| {

@@ -29,7 +29,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     let hints_area = Rect::new(area.x, area.y + 2, area.width, 1);
 
     let info_line = match state.mode {
-        InputMode::Browse => Line::from(vec![
+        InputMode::Browse | InputMode::CardView => Line::from(vec![
             Span::styled(
                 format!("{} confessions", state.total_confessions),
                 Style::default().fg(Color::Indexed(242)),
@@ -56,7 +56,10 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     frame.render_widget(rule_p, rule_area);
 
     if let Some(msg) = state.message
-        && matches!(state.mode, InputMode::Browse | InputMode::ViewReplies)
+        && matches!(
+            state.mode,
+            InputMode::Browse | InputMode::CardView | InputMode::ViewReplies
+        )
     {
         let line = Line::from(msg).centered();
         let p = Paragraph::new(line).style(Style::default().fg(Color::Yellow));
@@ -72,8 +75,16 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             spans.extend(hint("tab", "select"));
             spans.extend(hint("v", "vote"));
             spans.extend(hint("⏎", "replies"));
+            spans.extend(hint("␣", "feed"));
             spans.extend(hint("n", "confess"));
             spans.extend(hint("q", "quit"));
+        }
+        InputMode::CardView => {
+            spans.extend(hint("←→/hl", "prev/next"));
+            spans.extend(hint("v", "vote"));
+            spans.extend(hint("⏎", "replies"));
+            spans.extend(hint("n", "confess"));
+            spans.extend(hint("␣", "canvas"));
         }
         InputMode::Compose => {
             spans.push(Span::styled(

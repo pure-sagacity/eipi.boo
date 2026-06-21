@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputMode {
     Browse,
+    CardView,
     Compose,
     ViewReplies,
     ComposeReply,

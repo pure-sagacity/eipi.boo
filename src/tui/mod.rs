@@ -1,3 +1,4 @@
+mod card_view;
 mod compose;
 mod confession_box;
 mod reply_panel;
@@ -73,6 +74,7 @@ pub struct RenderState<'a> {
     pub replies: &'a [Reply],
     pub viewing_confession: Option<&'a Confession>,
     pub reply_scroll: usize,
+    pub card_index: usize,
 }
 
 pub fn render(frame: &mut Frame, state: &RenderState) {
@@ -83,11 +85,17 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         return;
     }
 
-    let reply_open = matches!(state.mode, InputMode::ViewReplies | InputMode::ComposeReply);
-
     let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(area);
     let main_area = chunks[0];
     let status_area = chunks[1];
+
+    if state.mode == InputMode::CardView {
+        card_view::render(frame, state, main_area);
+        statusline::render(frame, state, status_area);
+        return;
+    }
+
+    let reply_open = matches!(state.mode, InputMode::ViewReplies | InputMode::ComposeReply);
 
     let (canvas_area, reply_area) = if reply_open {
         let half = main_area.width / 2;
