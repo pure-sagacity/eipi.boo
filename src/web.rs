@@ -1,5 +1,5 @@
 use log::{info, warn};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 const PAGE: &str = r#"<!DOCTYPE html>
@@ -96,6 +96,9 @@ pub async fn serve() {
         };
 
         tokio::spawn(async move {
+            let mut buf = [0u8; 1024];
+            let _ = stream.read(&mut buf).await;
+
             let response = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 PAGE.len(),
