@@ -165,14 +165,20 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             border,
         )));
 
-        // character
+        // character holding the card — face changes with confession length
         let center = mid + 1;
+        let face = match c.text.len() {
+            0..70 => "\\(^_^)/",
+            70..150 => "\\(o_o)/",
+            150..220 => "\\(>_<)/",
+            _ => "\\(x_x)/",
+        };
         lines.push(Line::from(Span::styled(
             format!("{}│", " ".repeat(center)),
             char_style,
         )));
         lines.push(Line::from(Span::styled(
-            format!("{}\\(◠‿◠)/", " ".repeat(center.saturating_sub(4))),
+            format!("{}{}", " ".repeat(center.saturating_sub(3)), face),
             char_style,
         )));
         lines.push(Line::from(Span::styled(
