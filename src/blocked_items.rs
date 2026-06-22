@@ -2,6 +2,7 @@
 
 pub const BLOCKED_WORDS: &[&str] = &[
     "nigger",
+    "gay",
     "nigga",
     "faggot",
     "kike",
@@ -26,4 +27,9 @@ pub const BLOCKED_WORDS: &[&str] = &[
     "naked",
     "kill yourself",
     "kys",
+    "mugi",
+    "randi",
+    "bhalu",
+    "boka",
+    "puti",
 ];
