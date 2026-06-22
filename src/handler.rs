@@ -279,10 +279,18 @@ impl ClientHandler {
                 (InputMode::Browse, KeyEvent::Char('q')) => {
                     self.mode = InputMode::ConfirmQuit;
                 }
-                (InputMode::Browse, KeyEvent::Up | KeyEvent::Char('k')) => self.cam_y -= crate::consts::CAM_SPEED_Y,
-                (InputMode::Browse, KeyEvent::Down | KeyEvent::Char('j')) => self.cam_y += crate::consts::CAM_SPEED_Y,
-                (InputMode::Browse, KeyEvent::Left | KeyEvent::Char('h')) => self.cam_x -= crate::consts::CAM_SPEED_X,
-                (InputMode::Browse, KeyEvent::Right | KeyEvent::Char('l')) => self.cam_x += crate::consts::CAM_SPEED_X,
+                (InputMode::Browse, KeyEvent::Up | KeyEvent::Char('k')) => {
+                    self.cam_y -= crate::consts::CAM_SPEED_Y
+                }
+                (InputMode::Browse, KeyEvent::Down | KeyEvent::Char('j')) => {
+                    self.cam_y += crate::consts::CAM_SPEED_Y
+                }
+                (InputMode::Browse, KeyEvent::Left | KeyEvent::Char('h')) => {
+                    self.cam_x -= crate::consts::CAM_SPEED_X
+                }
+                (InputMode::Browse, KeyEvent::Right | KeyEvent::Char('l')) => {
+                    self.cam_x += crate::consts::CAM_SPEED_X
+                }
                 (InputMode::Browse, KeyEvent::Tab) => self.cycle_selection(),
                 (InputMode::Browse, KeyEvent::Enter) => {
                     self.came_from_card = false;
@@ -296,9 +304,7 @@ impl ClientHandler {
                 (InputMode::Browse, KeyEvent::MouseClick(sx, sy)) => {
                     self.select_at_screen(*sx, *sy);
                 }
-                (InputMode::Browse, KeyEvent::Char(' '))
-                    if !self.confessions.is_empty() =>
-                {
+                (InputMode::Browse, KeyEvent::Char(' ')) if !self.confessions.is_empty() => {
                     self.card_index = self.selected.unwrap_or(0);
                     self.mode = InputMode::CardView;
                 }
@@ -333,7 +339,10 @@ impl ClientHandler {
                     self.mode = InputMode::Compose;
                     self.compose_buf.clear();
                 }
-                (InputMode::CardView, KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char(' ')) => {
+                (
+                    InputMode::CardView,
+                    KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char(' '),
+                ) => {
                     self.selected = Some(self.card_index);
                     self.mode = InputMode::Browse;
                 }

@@ -1,6 +1,6 @@
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
-use ratatui::Frame;
 
 use crate::confession::{self, Confession};
 use crate::consts;
@@ -39,8 +39,10 @@ pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect) {
 
         for y in top..=bot {
             for x in left..=right {
-                let inside = x >= rect.x && x < rect.x + rect.width
-                    && y >= rect.y && y < rect.y + rect.height;
+                let inside = x >= rect.x
+                    && x < rect.x + rect.width
+                    && y >= rect.y
+                    && y < rect.y + rect.height;
                 if inside {
                     continue;
                 }
@@ -76,13 +78,7 @@ pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect) {
 }
 
 /// Render glow around popular confessions on the 2D canvas.
-pub fn render(
-    frame: &mut Frame,
-    confessions: &[Confession],
-    cam_x: i64,
-    cam_y: i64,
-    area: Rect,
-) {
+pub fn render(frame: &mut Frame, confessions: &[Confession], cam_x: i64, cam_y: i64, area: Rect) {
     for c in confessions {
         if c.votes <= consts::VOTES_GLOW {
             continue;

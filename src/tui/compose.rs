@@ -19,7 +19,10 @@ fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
 
 fn text_input(frame: &mut Frame, buf: &str, placeholder: &str, inner: Rect) {
     let (text, style) = if buf.is_empty() {
-        (placeholder.to_string(), Style::default().fg(Color::DarkGray))
+        (
+            placeholder.to_string(),
+            Style::default().fg(Color::DarkGray),
+        )
     } else {
         (format!("{}_", buf), Style::default().fg(Color::White))
     };

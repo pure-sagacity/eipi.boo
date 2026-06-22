@@ -164,7 +164,13 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         confession_box::render(frame, c, rect, is_selected, has_voted);
     }
 
-    glow::render(frame, state.confessions, state.cam_x, state.cam_y, canvas_area);
+    glow::render(
+        frame,
+        state.confessions,
+        state.cam_x,
+        state.cam_y,
+        canvas_area,
+    );
 
     if state.confessions.is_empty() {
         let hint = Paragraph::new("No confessions yet. Press [n] to write the first one.")
