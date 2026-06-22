@@ -2,6 +2,10 @@
   <h1><code>$ ssh eipi.boo</code></h1> 
 </div>
 
+## Contributing
+
+Pull requests and contributions are welcome by all means. Feel free to [open an issue](https://github.com/pwnwriter/eipi.boo/issues/new) or submit a PR.
+
 ## License
 
 [MIT](LICENSE)
