@@ -8,8 +8,8 @@
 **What "anonymous" means here:** Other users can't see who posted what. There are no usernames, no accounts, no profiles. Your confessions, votes, and replies are not tied to any visible identity.
 
 **What the server can see:**
-- Your SSH public key fingerprint (SHA-256) — used for rate limiting and vote deduplication, not displayed anywhere
-- Your IP address — visible in connection logs like any server, not stored in the database
+- Your SSH public key fingerprint (SHA-256):  used for rate limiting and vote deduplication, not displayed anywhere
+- Your IP address: visible in connection logs like any server, not stored in the database
 - Your confessions, votes, and replies — stored in SQLite with only the fingerprint as author identifier
 
 **What the server cannot do:**
@@ -23,16 +23,12 @@ git clone https://github.com/pwnwriter/eipi.boo
 cargo build --release
 EIPI_LISTEN=0.0.0.0:2222 ./target/release/eipi
 ```
-
-This is a fun weekend project, not a whistleblower platform. If you need true anonymity, use Tor or don't even use eipi i'm not tryna argue on this. 
-
 </details>
 
 <details>
-<summary><strong>Was this vibe coded?</strong></summary>
+<summary><strong>Was AI used while building this?</strong></summary>
 
-No. I built this because I wanted to learn how to build SSH apps in Rust using [russh](https://github.com/Russh/russh) and [ratatui](https://github.com/ratatui/ratatui). My friends loved the idea so I ended up publishing it. Did I use LLMs at some points to help? Yeah, the same way I use Google, Stack Overflow, or docs. Every search engine has AI in it these days. I personally [don't like the idea of vibe coding](https://www.pwnwriter.me/syndications/ai-agents). The code is fully open source, go read it.
-
+Yes, AI was used as an assistant, not as the author. This isn't vibe coded. I know what every function does and why it's there. I built this to learn how SSH apps work in Rust using [russh](https://github.com/Russh/russh) and [ratatui](https://github.com/ratatui/ratatui). My friends loved the idea so I ended up publishing it. I used LLMs the same way I use docs or Stack Overflow, to write better code, not to write code for me. I personally don't like vibe coding either. 
 </details>
 
 ## Contributing
