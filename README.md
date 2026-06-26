@@ -9,8 +9,8 @@
 
 **What the server can see:**
 - Your SSH public key fingerprint (SHA-256):  used for rate limiting and vote deduplication, not displayed anywhere
-- Your IP address: visible in connection logs like any server, not stored in the database
-- Your confessions, votes, and replies — stored in SQLite with only the fingerprint as author identifier
+- Your IP address: visible in connection logs like any server, not stored in the database, i myself won't even go ahead and read those ip's unless something happens on the server usually. 
+- Your confessions, votes, and replies, stored in SQLite with only the fingerprint as a `hash` not raw fingerprint to identify the auther, btw i public my gpg and ssh public key since 5 years and haven't happend anything wrong yet. 
 
 **What the server cannot do:**
 - Access your files, shell, or anything on your machine
