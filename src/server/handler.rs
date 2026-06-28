@@ -308,11 +308,6 @@ impl ClientHandler {
             }
 
             match (&self.mode, &event) {
-                (InputMode::Splash, _) => {
-                    self.splash_frame = crate::tui::splash::TOTAL_FRAMES;
-                    self.splash_done.store(true, Ordering::Relaxed);
-                    self.mode = InputMode::Browse;
-                }
                 (InputMode::Browse, KeyEvent::Char('q')) => {
                     self.mode = InputMode::ConfirmQuit;
                 }
@@ -807,10 +802,76 @@ impl server::Handler for ClientHandler {
                         break;
                     }
                 }
-                // animation finished naturally, trigger transition
+                // animation finished, clear screen and render Browse view
                 splash_done.store(true, Ordering::Relaxed);
-                // send a null byte to wake the data handler
-                let _ = handle.data(channel_id, "\0".as_bytes()).await;
+
+                // clear screen first
+                {
+                    let mut w = writer.clone();
+                    crossterm::execute!(
+                        w,
+                        crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
+                    )
+                    .ok();
+                    let clear_bytes = w.drain();
+                    if !clear_bytes.is_empty() {
+                        let _ = handle.data(channel_id, clear_bytes).await;
+                    }
+                }
+
+                let confessions = {
+                    let db = shared.db.lock();
+                    crate::db::get_all(&db)
+                };
+                let (cam_x, cam_y) = crate::tui::canvas::best_camera(&confessions, width, height);
+                let visible = crate::tui::canvas::visible_confessions(
+                    &confessions,
+                    cam_x,
+                    cam_y,
+                    width,
+                    height.saturating_sub(1),
+                );
+                let selected = visible.first().copied();
+                let (total_confessions, total_humans) = {
+                    let db = shared.db.lock();
+                    crate::db::stats(&db)
+                };
+
+                let w = writer.clone();
+                let term = crate::tui::create_terminal(w.clone(), width, height);
+                if let Ok(mut term) = term {
+                    let state = RenderState {
+                        confessions: &confessions,
+                        cam_x,
+                        cam_y,
+                        selected,
+                        mode: InputMode::Browse,
+                        compose_buf: "",
+                        reply_name_buf: "",
+                        reply_name_phase: false,
+                        message: None,
+                        total_confessions,
+                        total_humans,
+                        online: shared.online.load(Ordering::Relaxed),
+                        voted_ids: &[],
+                        replies: &[],
+                        viewing_confession: None,
+                        reply_scroll: 0,
+                        card_index: 0,
+                        came_from_card: false,
+                        search_buf: "",
+                        search_result_count: 0,
+                        search_index: 0,
+                        splash_frame: 0,
+                    };
+                    let _ = term.draw(|frame| {
+                        crate::tui::render(frame, &state);
+                    });
+                    let bytes = w.drain();
+                    if !bytes.is_empty() {
+                        let _ = handle.data(channel_id, bytes).await;
+                    }
+                }
             });
         }
 
@@ -845,12 +906,38 @@ impl server::Handler for ClientHandler {
         }
 
         // auto-transition from splash when animation finishes
-        if self.mode == InputMode::Splash && self.splash_done.load(Ordering::Relaxed) {
-            self.mode = InputMode::Browse;
+        if self.mode == InputMode::Splash {
+            if self.splash_done.load(Ordering::Relaxed) {
+                self.mode = InputMode::Browse;
+                // clear screen and recreate terminal to remove splash artifacts
+                crossterm::execute!(self.writer, terminal::Clear(terminal::ClearType::All)).ok();
+                let clear_bytes = self.writer.drain();
+                if !clear_bytes.is_empty() {
+                    let _ = session.data(channel_id, clear_bytes);
+                }
+                self.terminal =
+                    crate::tui::create_terminal(self.writer.clone(), self.width, self.height).ok();
+                self.reload_confessions();
+                let (cx, cy) = canvas::best_camera(&self.confessions, self.width, self.height);
+                self.cam_x = cx;
+                self.cam_y = cy;
+                let visible = self.visible_indices();
+                if !visible.is_empty() {
+                    self.selected = Some(visible[0]);
+                }
+                let output = self.do_render();
+                if !output.is_empty() {
+                    let _ = session.data(channel_id, output);
+                }
+                return Ok(());
+            } else {
+                // swallow all input during splash
+                return Ok(());
+            }
         }
 
         let events = super::input::parse(data);
-        if events.is_empty() && self.mode != InputMode::Browse {
+        if events.is_empty() {
             return Ok(());
         }
 
