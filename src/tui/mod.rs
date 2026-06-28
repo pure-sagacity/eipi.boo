@@ -4,6 +4,7 @@ mod compose;
 mod confession_box;
 mod glow;
 mod reply_panel;
+pub(crate) mod splash;
 mod statusline;
 
 use std::io::Write;
@@ -83,6 +84,7 @@ pub struct RenderState<'a> {
     pub search_buf: &'a str,
     pub search_result_count: usize,
     pub search_index: usize,
+    pub splash_frame: u8,
 }
 
 pub fn render(frame: &mut Frame, state: &RenderState) {
@@ -90,6 +92,11 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
     if area.width < 10 || area.height < 5 {
         let msg = Paragraph::new("Terminal too small").style(Style::default().fg(Color::Red));
         frame.render_widget(msg, area);
+        return;
+    }
+
+    if state.mode == InputMode::Splash {
+        splash::render(frame, state.splash_frame, area);
         return;
     }
 

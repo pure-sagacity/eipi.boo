@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputMode {
+    Splash,
     Browse,
     CardView,
     Compose,

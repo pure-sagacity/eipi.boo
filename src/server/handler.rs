@@ -45,6 +45,8 @@ pub(crate) struct ClientHandler {
     search_buf: String,
     search_results: Vec<usize>,
     search_index: usize,
+    splash_frame: u8,
+    splash_done: Arc<std::sync::atomic::AtomicBool>,
     terminal: Option<Terminal<CrosstermBackend<TermWriter>>>,
     writer: TermWriter,
 }
@@ -58,7 +60,7 @@ impl ClientHandler {
             cam_x: 0,
             cam_y: 0,
             selected: None,
-            mode: InputMode::Browse,
+            mode: InputMode::Splash,
             compose_buf: String::new(),
             reply_name_buf: String::new(),
             reply_name_phase: false,
@@ -75,6 +77,8 @@ impl ClientHandler {
             search_buf: String::new(),
             search_results: Vec::new(),
             search_index: 0,
+            splash_frame: 0,
+            splash_done: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             terminal: None,
             writer: TermWriter::default(),
         }
@@ -304,6 +308,11 @@ impl ClientHandler {
             }
 
             match (&self.mode, &event) {
+                (InputMode::Splash, _) => {
+                    self.splash_frame = crate::tui::splash::TOTAL_FRAMES;
+                    self.splash_done.store(true, Ordering::Relaxed);
+                    self.mode = InputMode::Browse;
+                }
                 (InputMode::Browse, KeyEvent::Char('q')) => {
                     self.mode = InputMode::ConfirmQuit;
                 }
@@ -597,6 +606,7 @@ impl ClientHandler {
             search_buf: &self.search_buf,
             search_result_count: self.search_results.len(),
             search_index: self.search_index,
+            splash_frame: self.splash_frame,
         };
 
         match terminal.draw(|frame| {
@@ -743,6 +753,67 @@ impl server::Handler for ClientHandler {
             let _ = session.data(channel_id, output);
         }
 
+        // splash animation: advance frames on a timer
+        {
+            let handle = session.handle();
+            let shared = self.shared.clone();
+            let width = self.width;
+            let height = self.height;
+            let confessions = self.confessions.clone();
+            let writer = self.writer.clone();
+            let splash_done = self.splash_done.clone();
+            tokio::spawn(async move {
+                use crate::tui::splash::TOTAL_FRAMES;
+                for f in 1..TOTAL_FRAMES {
+                    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                    if splash_done.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let w = writer.clone();
+                    let term = crate::tui::create_terminal(w.clone(), width, height);
+                    let Ok(mut term) = term else { break };
+                    let state = RenderState {
+                        confessions: &confessions,
+                        cam_x: 0,
+                        cam_y: 0,
+                        selected: None,
+                        mode: InputMode::Splash,
+                        compose_buf: "",
+                        reply_name_buf: "",
+                        reply_name_phase: false,
+                        message: None,
+                        total_confessions: 0,
+                        total_humans: 0,
+                        online: shared.online.load(Ordering::Relaxed),
+                        voted_ids: &[],
+                        replies: &[],
+                        viewing_confession: None,
+                        reply_scroll: 0,
+                        card_index: 0,
+                        came_from_card: false,
+                        search_buf: "",
+                        search_result_count: 0,
+                        search_index: 0,
+                        splash_frame: f,
+                    };
+                    let _ = term.draw(|frame| {
+                        crate::tui::render(frame, &state);
+                    });
+                    let bytes = w.drain();
+                    if bytes.is_empty() {
+                        continue;
+                    }
+                    if handle.data(channel_id, bytes).await.is_err() {
+                        break;
+                    }
+                }
+                // animation finished naturally, trigger transition
+                splash_done.store(true, Ordering::Relaxed);
+                // send a null byte to wake the data handler
+                let _ = handle.data(channel_id, "\0".as_bytes()).await;
+            });
+        }
+
         // background task: notify this client when someone else posts
         let handle = session.handle();
         let mut rx = self.shared.notify.subscribe();
@@ -773,8 +844,13 @@ impl server::Handler for ClientHandler {
             return Ok(());
         }
 
+        // auto-transition from splash when animation finishes
+        if self.mode == InputMode::Splash && self.splash_done.load(Ordering::Relaxed) {
+            self.mode = InputMode::Browse;
+        }
+
         let events = super::input::parse(data);
-        if events.is_empty() {
+        if events.is_empty() && self.mode != InputMode::Browse {
             return Ok(());
         }
 
