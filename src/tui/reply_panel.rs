@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Wrap};
 
@@ -9,6 +9,8 @@ use crate::model::confession;
 use super::RenderState;
 
 pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
+    let theme = &state.theme;
+
     let Some(confession) = state.viewing_confession else {
         return;
     };
@@ -28,11 +30,11 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         "♥"
     };
     let block = Block::bordered()
-        .border_style(Style::default().fg(Color::Yellow))
+        .border_style(Style::default().fg(theme.accent))
         .title_bottom(
             Line::from(Span::styled(
                 format!("{} {}", heart, confession.votes),
-                Style::default().fg(Color::Red),
+                Style::default().fg(theme.heart),
             ))
             .right_aligned(),
         );
@@ -41,7 +43,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         .block(block)
         .style(
             Style::default()
-                .fg(Color::White)
+                .fg(theme.text)
                 .add_modifier(Modifier::BOLD),
         )
         .wrap(Wrap { trim: true });
@@ -50,7 +52,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     if state.replies.is_empty() {
         if replies_area.height > 0 {
             let hint = Paragraph::new("  No replies yet. Press [r] to reply.")
-                .style(Style::default().fg(Color::DarkGray));
+                .style(Style::default().fg(theme.text_dim));
             frame.render_widget(
                 hint,
                 Rect::new(replies_area.x, replies_area.y, replies_area.width, 1),
@@ -67,12 +69,9 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
 
             let age = confession::time_ago(&reply.replied_at);
             let name_line = Line::from(vec![
-                Span::styled("  ↳ ", Style::default().fg(Color::DarkGray)),
-                Span::styled(&reply.name, Style::default().fg(Color::Cyan)),
-                Span::styled(
-                    format!("  {}", age),
-                    Style::default().fg(Color::Indexed(242)),
-                ),
+                Span::styled("  ↳ ", Style::default().fg(theme.text_dim)),
+                Span::styled(&reply.name, Style::default().fg(theme.accent_alt)),
+                Span::styled(format!("  {}", age), Style::default().fg(theme.border)),
             ]);
             frame.render_widget(
                 Paragraph::new(name_line),
@@ -88,7 +87,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                 }
                 let text_line = Line::from(vec![
                     Span::raw("      "),
-                    Span::styled(line.as_str(), Style::default().fg(Color::Gray)),
+                    Span::styled(line.as_str(), Style::default().fg(theme.text_secondary)),
                 ]);
                 frame.render_widget(
                     Paragraph::new(text_line),

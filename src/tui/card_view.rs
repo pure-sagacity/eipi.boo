@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 
@@ -10,9 +10,11 @@ use crate::model::confession;
 use super::RenderState;
 
 pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
+    let theme = &state.theme;
+
     if state.confessions.is_empty() {
         let hint = Paragraph::new("No confessions yet. Press [n] to write one.")
-            .style(Style::default().fg(Color::DarkGray));
+            .style(Style::default().fg(theme.text_dim));
         let cx = area.x + area.width.saturating_sub(46) / 2;
         let cy = area.y + area.height / 2;
         frame.render_widget(hint, Rect::new(cx, cy, 46.min(area.width), 1));
@@ -49,18 +51,18 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     let cx = area.x + area.width.saturating_sub(card_w as u16) / 2;
     let cy = area.y + area.height.saturating_sub(total_h) / 2;
 
-    let border = Style::default().fg(Color::Indexed(242));
-    let dim = Style::default().fg(Color::Indexed(238));
-    let text_style = Style::default().fg(Color::White);
-    let age_style = Style::default().fg(Color::Indexed(242));
-    let char_style = Style::default().fg(Color::Indexed(242));
+    let border = Style::default().fg(theme.border);
+    let dim = Style::default().fg(theme.border_dim);
+    let text_style = Style::default().fg(theme.text);
+    let age_style = Style::default().fg(theme.border);
+    let char_style = Style::default().fg(theme.border);
 
     let age = confession::time_ago(&c.created_at);
     let heart = if has_voted { "♥" } else { "♡" };
     let heart_style = if has_voted {
-        Style::default().fg(Color::Red)
+        Style::default().fg(theme.heart)
     } else {
-        Style::default().fg(Color::DarkGray)
+        Style::default().fg(theme.text_dim)
     };
     let position = format!("{}/{}", idx + 1, state.confessions.len());
 
@@ -80,9 +82,9 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     lines.push(Line::from(vec![
         Span::styled("│", border),
         Span::styled("  ", dim),
-        Span::styled("●", Style::default().fg(Color::Red)),
-        Span::styled(" ●", Style::default().fg(Color::Yellow)),
-        Span::styled(" ●", Style::default().fg(Color::Green)),
+        Span::styled("●", Style::default().fg(theme.dot_red)),
+        Span::styled(" ●", Style::default().fg(theme.dot_yellow)),
+        Span::styled(" ●", Style::default().fg(theme.dot_green)),
         Span::raw(" ".repeat(dots_pad)),
         Span::styled(age_display, age_style),
         Span::styled("│", border),
@@ -150,7 +152,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         Span::raw("  "),
         Span::styled(heart, heart_style),
         Span::styled(votes_str, heart_style),
-        Span::styled(reply_display, Style::default().fg(Color::Cyan)),
+        Span::styled(reply_display, Style::default().fg(theme.accent_alt)),
         Span::raw(" ".repeat(footer_pad)),
         Span::styled(&position, age_style),
         Span::raw("  "),
@@ -159,14 +161,12 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
 
     // bottom border
     if show_char {
-        // ╰──────┬──────╯
         let mid = iw / 2;
         lines.push(Line::from(Span::styled(
             format!("╰{}┬{}╯", "─".repeat(mid), "─".repeat(iw - mid - 1)),
             border,
         )));
 
-        // character holding the card — face changes with confession length
         let center = mid + 1;
         let face = match c.text.len() {
             0..70 => "\\(^_^)/",
@@ -191,7 +191,6 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             char_style,
         )));
     } else {
-        // ╰──────╯
         lines.push(Line::from(Span::styled(
             format!("╰{}╯", "─".repeat(iw)),
             border,
@@ -203,6 +202,6 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     frame.render_widget(paragraph, card_rect);
 
     if c.votes > consts::VOTES_GLOW {
-        super::glow::render_ring(frame, c.votes, card_rect, area);
+        super::glow::render_ring(frame, c.votes, card_rect, area, theme);
     }
 }

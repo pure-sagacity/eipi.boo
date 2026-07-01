@@ -1,9 +1,11 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 
 use crate::helper::consts;
 use crate::model::confession::{self, Confession};
+
+use super::theme::Theme;
 
 const SPARKLES: [char; 4] = ['✦', '✧', '·', '*'];
 
@@ -17,16 +19,16 @@ fn sparkle_hash(x: i64, y: i64) -> u64 {
 }
 
 /// Render a 2-ring sparkle glow around a screen-space rectangle.
-pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect) {
+pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect, theme: &Theme) {
     let density = if votes > consts::VOTES_MAGENTA {
         consts::GLOW_DENSITY_HIGH
     } else {
         consts::GLOW_DENSITY_LOW
     };
     let color = if votes > consts::VOTES_MAGENTA {
-        Color::Magenta
+        theme.glow_high
     } else {
-        Color::Cyan
+        theme.glow_mid
     };
 
     let buf = frame.buffer_mut();
@@ -66,7 +68,7 @@ pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect) {
                 let style = if ring == 1 {
                     Style::default().fg(color)
                 } else {
-                    Style::default().fg(Color::Indexed(238))
+                    Style::default().fg(theme.border_dim)
                 };
 
                 let cell = &mut buf[(x, y)];
@@ -78,7 +80,7 @@ pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect) {
 }
 
 /// Render glow around popular confessions on the 2D canvas.
-pub fn render(frame: &mut Frame, confessions: &[Confession], cam_x: i64, cam_y: i64, area: Rect) {
+pub fn render(frame: &mut Frame, confessions: &[Confession], cam_x: i64, cam_y: i64, area: Rect, theme: &Theme) {
     for c in confessions {
         if c.votes <= consts::VOTES_GLOW {
             continue;
@@ -101,6 +103,6 @@ pub fn render(frame: &mut Frame, confessions: &[Confession], cam_x: i64, cam_y: 
             box_h,
         );
 
-        render_ring(frame, c.votes, screen_rect, area);
+        render_ring(frame, c.votes, screen_rect, area, theme);
     }
 }

@@ -4,6 +4,8 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 
+use super::theme::Theme;
+
 pub const TOTAL_FRAMES: u8 = 9;
 
 // Characters typed in sequence: e i p i . b o o
@@ -21,21 +23,21 @@ fn is_key_active(ch: char, typed_count: usize) -> bool {
     }
 }
 
-fn build_key(label: &str, active: bool) -> Span<'static> {
+fn build_key(label: &str, active: bool, theme: &Theme) -> Span<'static> {
     if active {
         Span::styled(
             format!(" {} ", label),
-            Style::default().fg(Color::Black).bg(Color::Indexed(175)),
+            Style::default().fg(Color::Black).bg(theme.accent_rose),
         )
     } else {
         Span::styled(
             format!(" {} ", label),
-            Style::default().fg(Color::Indexed(242)),
+            Style::default().fg(theme.border),
         )
     }
 }
 
-pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
+pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect, theme: &Theme) {
     // frame 0: empty keyboard, no typing
     // frame 1-8: type each character of "eipi.boo"
     // frame 9: keyboard fades, text stays, transition
@@ -57,7 +59,7 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
         ['n', 'm', ',', '.', '/'],
     ];
 
-    let border = Style::default().fg(Color::Indexed(238));
+    let border = Style::default().fg(theme.border_dim);
     let gap = "       "; // gap between halves
 
     let mut lines: Vec<Line> = Vec::new();
@@ -66,8 +68,8 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
     let typed_text: String = TYPED[..typed_count].iter().collect();
     lines.push(
         Line::from(vec![
-            Span::styled(&typed_text, Style::default().fg(Color::Indexed(175))),
-            Span::styled("_", Style::default().fg(Color::White)),
+            Span::styled(&typed_text, Style::default().fg(theme.accent_rose)),
+            Span::styled("_", Style::default().fg(theme.text)),
         ])
         .centered(),
     );
@@ -104,7 +106,7 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
         for &ch in &left_keys[row] {
             let active = is_key_active(ch, typed_count);
             key_spans.push(Span::styled("│", border));
-            key_spans.push(build_key(&ch.to_string(), active));
+            key_spans.push(build_key(&ch.to_string(), active, theme));
         }
         key_spans.push(Span::styled("│", border));
         key_spans.push(Span::raw(gap));
@@ -112,7 +114,7 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
         for &ch in &right_keys[row] {
             let active = is_key_active(ch, typed_count);
             key_spans.push(Span::styled("│", border));
-            key_spans.push(build_key(&ch.to_string(), active));
+            key_spans.push(build_key(&ch.to_string(), active, theme));
         }
         key_spans.push(Span::styled("│", border));
         lines.push(Line::from(key_spans));
@@ -149,15 +151,15 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect) {
     lines.push(Line::from(vec![
         Span::raw("            "),
         Span::styled("│", border),
-        build_key("⌥", false),
+        build_key("⌥", false, theme),
         Span::styled("│", border),
-        build_key("⎵", false),
+        build_key("⎵", false, theme),
         Span::styled("│", border),
         Span::raw(gap),
         Span::styled("│", border),
-        build_key("⏎", false),
+        build_key("⏎", false, theme),
         Span::styled("│", border),
-        build_key("⌘", false),
+        build_key("⌘", false, theme),
         Span::styled("│", border),
     ]));
 

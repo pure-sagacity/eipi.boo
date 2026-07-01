@@ -1,8 +1,10 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
+
+use super::theme::Theme;
 
 fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
     let max_w = (area.width * 9 / 10).max(20);
@@ -18,14 +20,14 @@ fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
     popup
 }
 
-fn text_input(frame: &mut Frame, buf: &str, placeholder: &str, inner: Rect) {
+fn text_input(frame: &mut Frame, buf: &str, placeholder: &str, inner: Rect, theme: &Theme) {
     let (text, style) = if buf.is_empty() {
         (
             placeholder.to_string(),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(theme.text_dim),
         )
     } else {
-        (format!("{}_", buf), Style::default().fg(Color::White))
+        (format!("{}_", buf), Style::default().fg(theme.text))
     };
     frame.render_widget(
         Paragraph::new(text).style(style).wrap(Wrap { trim: true }),
@@ -33,17 +35,17 @@ fn text_input(frame: &mut Frame, buf: &str, placeholder: &str, inner: Rect) {
     );
 }
 
-pub fn render_confession(frame: &mut Frame, buf: &str, area: Rect) {
+pub fn render_confession(frame: &mut Frame, buf: &str, area: Rect, theme: &Theme) {
     let popup = centered_popup(frame, area, 50, 8);
     let block = Block::bordered()
-        .border_style(Style::default().fg(Color::Yellow))
+        .border_style(Style::default().fg(theme.accent))
         .title(" New Confession ");
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
-    text_input(frame, buf, "Type your confession...", inner);
+    text_input(frame, buf, "Type your confession...", inner, theme);
 }
 
-pub fn render_reply(frame: &mut Frame, buf: &str, name: &str, area: Rect) {
+pub fn render_reply(frame: &mut Frame, buf: &str, name: &str, area: Rect, theme: &Theme) {
     let popup = centered_popup(frame, area, 50, 8);
     let title = if name.is_empty() {
         " Reply as anon ".to_string()
@@ -51,26 +53,26 @@ pub fn render_reply(frame: &mut Frame, buf: &str, name: &str, area: Rect) {
         format!(" Reply as {} ", name)
     };
     let block = Block::bordered()
-        .border_style(Style::default().fg(Color::Cyan))
+        .border_style(Style::default().fg(theme.accent_alt))
         .title(title);
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
-    text_input(frame, buf, "Type your reply...", inner);
+    text_input(frame, buf, "Type your reply...", inner, theme);
 }
 
-pub fn render_search(frame: &mut Frame, buf: &str, area: Rect) {
+pub fn render_search(frame: &mut Frame, buf: &str, area: Rect, theme: &Theme) {
     let popup = centered_popup(frame, area, 50, 5);
     let block = Block::bordered()
-        .border_style(Style::default().fg(Color::Magenta))
+        .border_style(Style::default().fg(theme.accent_search))
         .title(" Search ");
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
-    text_input(frame, buf, "Type to search confessions...", inner);
+    text_input(frame, buf, "Type to search confessions...", inner, theme);
 }
 
-pub fn render_quit(frame: &mut Frame, area: Rect) {
+pub fn render_quit(frame: &mut Frame, area: Rect, theme: &Theme) {
     let popup = centered_popup(frame, area, 40, 7);
-    let block = Block::bordered().border_style(Style::default().fg(Color::Red));
+    let block = Block::bordered().border_style(Style::default().fg(theme.heart));
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
 
@@ -79,19 +81,19 @@ pub fn render_quit(frame: &mut Frame, area: Rect) {
         Line::from(Span::styled(
             "wait, leaving already? :(",
             Style::default()
-                .fg(Color::White)
+                .fg(theme.text)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             "did you confess something?",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(theme.text_dim),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("q/⏎ ", Style::default().fg(Color::Red)),
-            Span::styled("leave   ", Style::default().fg(Color::DarkGray)),
-            Span::styled("any key ", Style::default().fg(Color::Green)),
-            Span::styled("stay", Style::default().fg(Color::DarkGray)),
+            Span::styled("q/⏎ ", Style::default().fg(theme.heart)),
+            Span::styled("leave   ", Style::default().fg(theme.text_dim)),
+            Span::styled("any key ", Style::default().fg(theme.online)),
+            Span::styled("stay", Style::default().fg(theme.text_dim)),
         ]),
     ];
 

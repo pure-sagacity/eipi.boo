@@ -9,13 +9,10 @@ use crate::server::input::InputMode;
 
 use super::RenderState;
 
-const DIM: Color = Color::DarkGray;
-const KEY: Color = Color::White;
-
 fn hint<'a>(key: &'a str, label: &'a str) -> Vec<Span<'a>> {
     vec![
-        Span::styled(key, Style::default().fg(KEY)),
-        Span::styled(format!(" {}   ", label), Style::default().fg(DIM)),
+        Span::styled(key, Style::default().fg(Color::White)),
+        Span::styled(format!(" {}   ", label), Style::default().fg(Color::DarkGray)),
     ]
 }
 
@@ -23,6 +20,8 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     if area.height < 3 {
         return;
     }
+
+    let theme = &state.theme;
 
     let info_area = Rect::new(area.x, area.y, area.width, 1);
     let rule_area = Rect::new(area.x, area.y + 1, area.width, 1);
@@ -32,32 +31,32 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         InputMode::Browse | InputMode::CardView | InputMode::SearchResults => Line::from(vec![
             Span::styled(
                 format!("{} confessions", state.total_confessions),
-                Style::default().fg(Color::Indexed(242)),
+                Style::default().fg(theme.border),
             ),
-            Span::styled(" · ", Style::default().fg(Color::Indexed(238))),
+            Span::styled(" · ", Style::default().fg(theme.border_dim)),
             Span::styled(
                 format!("{} humans", state.total_humans),
-                Style::default().fg(Color::Indexed(242)),
+                Style::default().fg(theme.border),
             ),
-            Span::styled(" · ", Style::default().fg(Color::Indexed(238))),
+            Span::styled(" · ", Style::default().fg(theme.border_dim)),
             Span::styled(
                 format!("{} online", state.online),
-                Style::default().fg(Color::Green),
+                Style::default().fg(theme.online),
             ),
-            Span::styled(" · ", Style::default().fg(Color::Indexed(238))),
+            Span::styled(" · ", Style::default().fg(theme.border_dim)),
             Span::styled(
                 "pwnwriter/eipi.boo",
-                Style::default().fg(Color::Indexed(242)),
+                Style::default().fg(theme.border),
             ),
         ])
         .centered(),
         _ => Line::from(""),
     };
-    let info_p = Paragraph::new(info_line).style(Style::default().fg(Color::Indexed(238)));
+    let info_p = Paragraph::new(info_line).style(Style::default().fg(theme.border_dim));
     frame.render_widget(info_p, info_area);
 
     let rule = "─".repeat(area.width as usize);
-    let rule_p = Paragraph::new(rule).style(Style::default().fg(Color::Indexed(238)));
+    let rule_p = Paragraph::new(rule).style(Style::default().fg(theme.border_dim));
     frame.render_widget(rule_p, rule_area);
 
     if let Some(msg) = state.message
@@ -67,7 +66,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         )
     {
         let line = Line::from(msg).centered();
-        let p = Paragraph::new(line).style(Style::default().fg(Color::Yellow));
+        let p = Paragraph::new(line).style(Style::default().fg(theme.warning));
         frame.render_widget(p, hints_area);
         return;
     }
@@ -84,6 +83,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             spans.extend(hint("␣", "feed"));
             spans.extend(hint("/", "search"));
             spans.extend(hint("n", "confess"));
+            spans.extend(hint("T", "theme"));
             spans.extend(hint("q", "quit"));
         }
         InputMode::CardView => {
@@ -92,12 +92,13 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             spans.extend(hint("⏎", "replies"));
             spans.extend(hint("/", "search"));
             spans.extend(hint("n", "confess"));
+            spans.extend(hint("T", "theme"));
             spans.extend(hint("␣", "canvas"));
         }
         InputMode::Compose => {
             spans.push(Span::styled(
                 format!("{}/{}", state.compose_buf.len(), confession::MAX_LENGTH),
-                Style::default().fg(DIM),
+                Style::default().fg(theme.text_dim),
             ));
             spans.push(Span::raw("   "));
             spans.extend(hint("⏎", "submit"));
@@ -106,7 +107,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         InputMode::ViewReplies => {
             spans.push(Span::styled(
                 format!("{} replies", state.replies.len()),
-                Style::default().fg(DIM),
+                Style::default().fg(theme.text_dim),
             ));
             spans.push(Span::raw("   "));
             spans.extend(hint("r", "reply"));
@@ -116,10 +117,10 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         }
         InputMode::ComposeReply => {
             if state.reply_name_phase {
-                spans.push(Span::styled("name (optional): ", Style::default().fg(DIM)));
+                spans.push(Span::styled("name (optional): ", Style::default().fg(theme.text_dim)));
                 spans.push(Span::styled(
                     format!("{}_", state.reply_name_buf),
-                    Style::default().fg(KEY),
+                    Style::default().fg(theme.text),
                 ));
                 spans.push(Span::raw("   "));
                 spans.extend(hint("⏎", "next"));
@@ -131,7 +132,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                         state.compose_buf.len(),
                         crate::model::reply::MAX_LENGTH
                     ),
-                    Style::default().fg(DIM),
+                    Style::default().fg(theme.text_dim),
                 ));
                 spans.push(Span::raw("   "));
                 spans.extend(hint("⏎", "submit"));
@@ -149,7 +150,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                     state.search_index + 1,
                     state.search_result_count
                 ),
-                Style::default().fg(Color::Magenta),
+                Style::default().fg(theme.accent_search),
             ));
             spans.push(Span::raw("   "));
             spans.extend(hint("←→/hl", "prev/next"));
@@ -157,7 +158,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             spans.extend(hint("⏎", "replies"));
             spans.extend(hint("esc", "back"));
         }
-        InputMode::ConfirmQuit | InputMode::Splash => {}
+        InputMode::ConfirmQuit | InputMode::Splash | InputMode::ThemePicker => {}
     }
 
     let line = Line::from(spans).centered();

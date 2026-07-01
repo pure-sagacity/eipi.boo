@@ -6,6 +6,9 @@ mod glow;
 mod reply_panel;
 pub(crate) mod splash;
 mod statusline;
+pub(crate) mod theme;
+pub(crate) mod theme_picker;
+pub(crate) mod themes;
 
 use std::io::Write;
 use std::sync::Arc;
@@ -85,6 +88,8 @@ pub struct RenderState<'a> {
     pub search_result_count: usize,
     pub search_index: usize,
     pub splash_frame: u8,
+    pub theme: theme::Theme,
+    pub theme_picker_index: usize,
 }
 
 pub fn render(frame: &mut Frame, state: &RenderState) {
@@ -95,8 +100,10 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         return;
     }
 
+    let theme = &state.theme;
+
     if state.mode == InputMode::Splash {
-        splash::render(frame, state.splash_frame, area);
+        splash::render(frame, state.splash_frame, area, theme);
         return;
     }
 
@@ -122,7 +129,7 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         statusline::render(frame, state, status_area);
 
         if state.mode == InputMode::ComposeReply && !state.reply_name_phase {
-            compose::render_reply(frame, state.compose_buf, state.reply_name_buf, area);
+            compose::render_reply(frame, state.compose_buf, state.reply_name_buf, area, theme);
         }
         return;
     }
@@ -174,7 +181,7 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
 
         let is_selected = state.selected == Some(idx);
         let has_voted = state.voted_ids.contains(&c.id);
-        confession_box::render(frame, c, rect, is_selected, has_voted);
+        confession_box::render(frame, c, rect, is_selected, has_voted, theme);
     }
 
     glow::render(
@@ -183,11 +190,12 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         state.cam_x,
         state.cam_y,
         canvas_area,
+        theme,
     );
 
     if state.confessions.is_empty() {
         let hint = Paragraph::new("No confessions yet. Press [n] to write the first one.")
-            .style(Style::default().fg(Color::DarkGray));
+            .style(Style::default().fg(theme.text_dim));
         let cx = canvas_area.x + canvas_area.width.saturating_sub(50) / 2;
         let cy = canvas_area.y + canvas_area.height / 2;
         let hw = 50.min(canvas_area.width);
@@ -201,18 +209,22 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
     statusline::render(frame, state, status_area);
 
     if state.mode == InputMode::Compose {
-        compose::render_confession(frame, state.compose_buf, area);
+        compose::render_confession(frame, state.compose_buf, area, theme);
     }
 
     if state.mode == InputMode::ComposeReply && !state.reply_name_phase {
-        compose::render_reply(frame, state.compose_buf, state.reply_name_buf, area);
+        compose::render_reply(frame, state.compose_buf, state.reply_name_buf, area, theme);
     }
 
     if state.mode == InputMode::Search {
-        compose::render_search(frame, state.search_buf, area);
+        compose::render_search(frame, state.search_buf, area, theme);
     }
 
     if state.mode == InputMode::ConfirmQuit {
-        compose::render_quit(frame, area);
+        compose::render_quit(frame, area, theme);
+    }
+
+    if state.mode == InputMode::ThemePicker {
+        theme_picker::render(frame, state.theme_picker_index, theme, area);
     }
 }
