@@ -9,8 +9,10 @@ use super::themes;
 
 pub fn render(frame: &mut Frame, selected: usize, theme: &Theme, area: Rect) {
     let count = themes::ALL.len();
-    let h = (count as u16) + 4; // 2 border + 1 title padding + items + 1 bottom padding
-    let w = 30_u16;
+    let max_h = area.height.saturating_sub(4);
+    let visible_items = (max_h.saturating_sub(2) as usize).min(count);
+    let h = (visible_items as u16) + 2; // 2 border
+    let w = 40_u16;
 
     let pw = w.min(area.width.saturating_sub(2));
     let ph = h.min(area.height.saturating_sub(2));
@@ -28,9 +30,16 @@ pub fn render(frame: &mut Frame, selected: usize, theme: &Theme, area: Rect) {
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
 
+    // scroll so selected item is always visible
+    let scroll = if selected >= visible_items {
+        selected - visible_items + 1
+    } else {
+        0
+    };
+
     let mut lines: Vec<Line> = Vec::new();
 
-    for (i, (name, t)) in themes::ALL.iter().enumerate() {
+    for (i, (name, t)) in themes::ALL.iter().enumerate().skip(scroll).take(visible_items) {
         let is_selected = i == selected;
         let prefix = if is_selected { " ▶ " } else { "   " };
 
@@ -40,7 +49,6 @@ pub fn render(frame: &mut Frame, selected: usize, theme: &Theme, area: Rect) {
             Style::default().fg(theme.text_secondary)
         };
 
-        // show a color preview swatch
         let swatch = vec![
             Span::styled(prefix, style),
             Span::styled(*name, style),
