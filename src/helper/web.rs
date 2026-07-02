@@ -155,12 +155,115 @@ fn landing_page(
     )
 }
 
-fn confession_page(id: i64, text: &str, age: &str, reactions: i64, replies: i64) -> String {
+fn build_ascii_card(
+    text: &str,
+    age: &str,
+    love: i64,
+    replies: i64,
+    reactions: i64,
+    position: &str,
+) -> String {
+    let iw: usize = 46;
+    let wrapped = crate::model::confession::wrap_text(text, iw - 4);
+
+    let mut lines: Vec<String> = Vec::new();
+
+    // top border
+    lines.push(format!("╭{}╮", "─".repeat(iw)));
+
+    // dots + age
+    let age_display = format!(" {} ", age);
+    let dots = "  ● ● ●";
+    let dots_pad = iw.saturating_sub(7 + age_display.len());
+    lines.push(format!("│{}{}{}│", dots, " ".repeat(dots_pad), age_display));
+
+    // separator
+    lines.push(format!("│{}│", "─".repeat(iw)));
+
+    // empty line
+    lines.push(format!("│{}│", " ".repeat(iw)));
+
+    // text lines
+    for line in &wrapped {
+        let dcols = line.chars().count();
+        let right_pad = iw.saturating_sub(dcols + 2);
+        lines.push(format!(
+            "│  {}{}│",
+            html_escape(line),
+            " ".repeat(right_pad)
+        ));
+    }
+
+    // empty line
+    lines.push(format!("│{}│", " ".repeat(iw)));
+
+    // separator
+    lines.push(format!("│{}│", "─".repeat(iw)));
+
+    // footer
+    let mut footer_left = String::from("  ");
+    let mut footer_left_len: usize = 2;
+    if love > 0 {
+        footer_left.push_str(&format!("♥ {}", love));
+        footer_left_len += 2 + love.to_string().len();
+    }
+    if replies > 0 {
+        footer_left.push_str(&format!("  \u{F0367} {}", replies));
+        footer_left_len += 4 + replies.to_string().len();
+    }
+    if reactions > 0 {
+        footer_left.push_str(&format!("  ✦ {}", reactions));
+        footer_left_len += 4 + reactions.to_string().len();
+    }
+    let pos_part = format!("{}  ", position);
+    let footer_pad = iw.saturating_sub(footer_left_len + pos_part.len());
+    lines.push(format!(
+        "│{}{}{}│",
+        footer_left,
+        " ".repeat(footer_pad),
+        pos_part
+    ));
+
+    // bottom border with stem
+    let mid = iw / 2;
+    lines.push(format!(
+        "╰{}┬{}╯",
+        "─".repeat(mid),
+        "─".repeat(iw - mid - 1)
+    ));
+
+    // ascii man
+    let center = mid + 1;
+    let face = match text.len() {
+        0..70 => "\\(^_^)/",
+        70..150 => "\\(o_o)/",
+        150..220 => "\\(>_<)/",
+        _ => "\\(x_x)/",
+    };
+    lines.push(format!("{}│", " ".repeat(center)));
+    lines.push(format!("{}{}", " ".repeat(center.saturating_sub(3)), face));
+    lines.push(format!("{}│", " ".repeat(center)));
+    lines.push(format!("{}/ \\", " ".repeat(center.saturating_sub(1))));
+
+    lines.join("\n")
+}
+
+fn confession_page(
+    id: i64,
+    text: &str,
+    age: &str,
+    love: i64,
+    reactions: i64,
+    replies: i64,
+    total: i64,
+) -> String {
     let truncated: String = text.chars().take(160).collect();
     let og_desc = format!(
         "{} | {} reactions, {} replies",
         truncated, reactions, replies
     );
+    let position = format!("{}/{}", id, total);
+    let ascii_card = build_ascii_card(text, age, love, replies, reactions, &position);
 
     format!(
         r#"<!DOCTYPE html>
@@ -183,74 +286,27 @@ fn confession_page(id: i64, text: &str, age: &str, reactions: i64, replies: i64)
       color: #575279;
       font-family: 'Courier New', monospace;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
     }}
-    .card {{
-      max-width: 480px;
-      width: 90%;
-      padding: 2rem;
-    }}
-    .cloud {{
-      background: #f2e9e1;
-      border: 2px solid #dfdad9;
-      border-radius: 20px;
-      padding: 1.5rem 1.8rem;
-      position: relative;
-      margin-bottom: 1rem;
-    }}
-    .cloud::after {{
-      content: '';
-      position: absolute;
-      bottom: -12px;
-      left: 30px;
-      width: 20px;
-      height: 20px;
-      background: #f2e9e1;
-      border: 2px solid #dfdad9;
-      border-radius: 50%;
-      border-top-color: #f2e9e1;
-    }}
-    .cloud::before {{
-      content: '';
-      position: absolute;
-      bottom: -22px;
-      left: 22px;
-      width: 12px;
-      height: 12px;
-      background: #f2e9e1;
-      border: 2px solid #dfdad9;
-      border-radius: 50%;
-      border-top-color: #f2e9e1;
-    }}
-    .text {{
-      font-size: 1.1rem;
-      line-height: 1.6;
+    .ascii {{
+      white-space: pre;
+      font-size: 14px;
+      line-height: 1.4;
       color: #575279;
     }}
-    .meta {{
-      display: flex;
-      justify-content: space-between;
-      margin-top: 1.5rem;
-      padding-top: 0.5rem;
-      color: #9893a5;
-      font-size: 0.85rem;
-    }}
-    .reactions {{
-      color: #b4637a;
-    }}
+    .ascii .border {{ color: #9893a5; }}
+    .ascii .dots-red {{ color: #b4637a; }}
+    .ascii .dots-yellow {{ color: #ea9d34; }}
+    .ascii .dots-green {{ color: #56949f; }}
+    .ascii .age {{ color: #9893a5; }}
+    .ascii .heart {{ color: #b4637a; }}
+    .ascii .man {{ color: #9893a5; }}
     .cta {{
       text-align: center;
       margin-top: 2rem;
-    }}
-    .cta a {{
-      color: #286983;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }}
-    .cta a:hover {{
-      text-decoration: underline;
     }}
     .cta .cmd {{
       background: #f2e9e1;
@@ -258,28 +314,73 @@ fn confession_page(id: i64, text: &str, age: &str, reactions: i64, replies: i64)
       border-radius: 6px;
       padding: 0.6rem 1.2rem;
       display: inline-block;
-      margin-top: 0.5rem;
     }}
     .cta .cmd code {{
       color: #286983;
       font-weight: bold;
     }}
+    .save {{
+      margin-top: 1rem;
+    }}
+    .save button {{
+      background: #f2e9e1;
+      border: 1px solid #dfdad9;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      color: #575279;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }}
+    .save button:hover {{
+      background: #dfdad9;
+    }}
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="cloud">
-      <p class="text">{}</p>
-    </div>
-    <div class="meta">
-      <span class="reactions">{} reactions · {} replies</span>
-      <span>{}</span>
-    </div>
-    <div class="cta">
-      <p>react and reply over ssh:</p>
-      <div class="cmd"><code>$ ssh eipi.boo</code></div>
-    </div>
+  <pre class="ascii" id="card">{}</pre>
+  <div class="cta">
+    <p style="color: #9893a5; font-size: 0.85rem; margin-bottom: 0.5rem;">react and reply over ssh</p>
+    <div class="cmd"><code>$ ssh eipi.boo</code></div>
   </div>
+  <div class="save">
+    <button onclick="saveImage()">save as image</button>
+  </div>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <script>
+  function saveImage() {{
+    const pre = document.getElementById('card');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const lines = pre.textContent.split('\n');
+    const fontSize = 14;
+    const lineHeight = fontSize * 1.4;
+    const padding = 40;
+    ctx.font = fontSize + 'px Courier New, monospace';
+    let maxWidth = 0;
+    for (const line of lines) {{
+      const w = ctx.measureText(line).width;
+      if (w > maxWidth) maxWidth = w;
+    }}
+    canvas.width = maxWidth + padding * 2;
+    canvas.height = lines.length * lineHeight + padding * 2;
+    ctx.fillStyle = '#faf4ed';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fontSize + 'px Courier New, monospace';
+    ctx.fillStyle = '#575279';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i < lines.length; i++) {{
+      ctx.fillText(lines[i], padding, padding + i * lineHeight);
+    }}
+    ctx.fillStyle = '#9893a5';
+    ctx.font = '12px Courier New, monospace';
+    ctx.fillText('eipi.boo', canvas.width - padding - ctx.measureText('eipi.boo').width, canvas.height - 24);
+    const link = document.createElement('a');
+    link.download = 'confession-{}.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }}
+  </script>
 </body>
 </html>"#,
         id,
@@ -288,10 +389,8 @@ fn confession_page(id: i64, text: &str, age: &str, reactions: i64, replies: i64)
         id,
         id,
         html_escape(&og_desc),
-        html_escape(text),
-        reactions,
-        replies,
-        age,
+        ascii_card,
+        id,
     )
 }
 
@@ -331,9 +430,19 @@ async fn confession(Path(id): Path<i64>, State(state): State<Arc<AppState>>) -> 
 
     let age = crate::model::confession::time_ago(&c.created_at);
     let reactions: i64 = c.reactions.iter().map(|r| r.count).sum();
+    let love = crate::model::confession::love_reactions(&c);
+    let stats = crate::db::stats(&db);
     drop(db);
 
-    let page = confession_page(id, &c.text, &age, reactions, c.reply_count);
+    let page = confession_page(
+        id,
+        &c.text,
+        &age,
+        love,
+        reactions,
+        c.reply_count,
+        stats.confessions,
+    );
     (
         axum::http::StatusCode::OK,
         [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
