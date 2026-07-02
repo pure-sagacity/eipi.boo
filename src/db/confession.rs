@@ -95,7 +95,14 @@ pub fn posts_today(conn: &Connection, fingerprint: &str) -> i64 {
     .unwrap_or(0)
 }
 
-pub fn stats(conn: &Connection) -> (i64, i64) {
+pub struct Stats {
+    pub confessions: i64,
+    pub humans: i64,
+    pub replies: i64,
+    pub reactions: i64,
+}
+
+pub fn stats(conn: &Connection) -> Stats {
     let confessions: i64 = conn
         .query_row("SELECT COUNT(*) FROM confessions", [], |row| row.get(0))
         .unwrap_or(0);
@@ -106,5 +113,16 @@ pub fn stats(conn: &Connection) -> (i64, i64) {
             |row| row.get(0),
         )
         .unwrap_or(0);
-    (confessions, humans)
+    let replies: i64 = conn
+        .query_row("SELECT COUNT(*) FROM replies", [], |row| row.get(0))
+        .unwrap_or(0);
+    let reactions: i64 = conn
+        .query_row("SELECT COUNT(*) FROM reactions", [], |row| row.get(0))
+        .unwrap_or(0);
+    Stats {
+        confessions,
+        humans,
+        replies,
+        reactions,
+    }
 }

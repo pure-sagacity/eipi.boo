@@ -747,7 +747,7 @@ impl ClientHandler {
         let (total_confessions, total_humans) = {
             let db = self.shared.db.lock();
             let stats = db::stats(&db);
-            (stats.0, stats.1)
+            (stats.confessions, stats.humans)
         };
 
         let viewing = self
@@ -1039,7 +1039,8 @@ impl server::Handler for ClientHandler {
                 let selected = visible.first().copied();
                 let (total_confessions, total_humans) = {
                     let db = shared.db.lock();
-                    crate::db::stats(&db)
+                    let stats = crate::db::stats(&db);
+                    (stats.confessions, stats.humans)
                 };
 
                 let w = writer.clone();

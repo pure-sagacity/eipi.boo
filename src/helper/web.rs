@@ -9,18 +9,26 @@ use log::info;
 
 use crate::server::AppState;
 
-const LANDING: &str = r#"<!DOCTYPE html>
+fn landing_page(
+    confessions: i64,
+    humans: i64,
+    replies: i64,
+    reactions: i64,
+    online: usize,
+) -> String {
+    format!(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>eipi.boo</title>
   <meta property="og:title" content="eipi.boo">
-  <meta property="og:description" content="anonymous confessions over ssh">
+  <meta property="og:description" content="{} confessions from {} strangers over ssh">
   <meta property="og:type" content="website">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
       background: #faf4ed;
       color: #575279;
       font-family: 'Courier New', monospace;
@@ -28,64 +36,124 @@ const LANDING: &str = r#"<!DOCTYPE html>
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-    }
-    .container {
+    }}
+    .container {{
       text-align: center;
       padding: 2rem;
-    }
-    h1 {
+    }}
+    h1 {{
       font-size: 3rem;
       color: #b4637a;
       margin-bottom: 0.5rem;
-    }
-    .tagline {
+    }}
+    .tagline {{
       color: #9893a5;
       font-size: 1.1rem;
-      margin-bottom: 2.5rem;
-    }
-    .cmd {
+      margin-bottom: 2rem;
+    }}
+    .stats {{
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }}
+    .stat {{
+      text-align: center;
+    }}
+    .stat-num {{
+      font-size: 1.8rem;
+      color: #b4637a;
+      font-weight: bold;
+      display: block;
+    }}
+    .stat-label {{
+      font-size: 0.8rem;
+      color: #9893a5;
+    }}
+    .cmd {{
       background: #f2e9e1;
       border: 1px solid #dfdad9;
       border-radius: 8px;
       padding: 1.2rem 2rem;
       display: inline-block;
-      margin-bottom: 2rem;
-    }
-    .cmd span {
+      margin-bottom: 1.5rem;
+    }}
+    .cmd span {{
       color: #56949f;
       font-size: 1.3rem;
-    }
-    .cmd code {
+    }}
+    .cmd code {{
       color: #286983;
       font-size: 1.3rem;
       font-weight: bold;
-    }
-    .footer {
+    }}
+    .online {{
+      color: #56949f;
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }}
+    .online .dot {{
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #56949f;
+      border-radius: 50%;
+      margin-right: 4px;
+      animation: pulse 2s infinite;
+    }}
+    @keyframes pulse {{
+      0%, 100% {{ opacity: 1; }}
+      50% {{ opacity: 0.4; }}
+    }}
+    .footer {{
       color: #9893a5;
       font-size: 0.85rem;
-    }
-    .footer a {
+    }}
+    .footer a {{
       color: #907aa9;
       text-decoration: none;
-    }
-    .footer a:hover {
+    }}
+    .footer a:hover {{
       text-decoration: underline;
-    }
+    }}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>eipi.boo</h1>
-    <p class="tagline">anonymous confessions over ssh</p>
+    <p class="tagline">confess over ssh</p>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-num">{}</span>
+        <span class="stat-label">confessions</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{}</span>
+        <span class="stat-label">humans</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{}</span>
+        <span class="stat-label">replies</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{}</span>
+        <span class="stat-label">reactions</span>
+      </div>
+    </div>
     <div class="cmd">
       <span>$ </span><code>ssh eipi.boo</code>
     </div>
+    <p class="online"><span class="dot"></span>{} online now</p>
     <p class="footer">
       <a href="https://github.com/pwnwriter/eipi.boo">source</a>
     </p>
   </div>
 </body>
-</html>"#;
+</html>"#,
+        confessions, humans, confessions, humans, replies, reactions, online,
+    )
+}
 
 fn confession_page(id: i64, text: &str, age: &str, reactions: i64, replies: i64) -> String {
     let truncated: String = text.chars().take(160).collect();
@@ -234,8 +302,18 @@ fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
 }
 
-async fn landing() -> Html<&'static str> {
-    Html(LANDING)
+async fn landing(State(state): State<Arc<AppState>>) -> Html<String> {
+    let db = state.db.lock();
+    let stats = crate::db::stats(&db);
+    drop(db);
+    let online = state.online.load(std::sync::atomic::Ordering::Relaxed);
+    Html(landing_page(
+        stats.confessions,
+        stats.humans,
+        stats.replies,
+        stats.reactions,
+        online,
+    ))
 }
 
 async fn confession(Path(id): Path<i64>, State(state): State<Arc<AppState>>) -> impl IntoResponse {
