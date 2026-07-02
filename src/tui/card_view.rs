@@ -221,8 +221,4 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     let paragraph = Paragraph::new(lines);
     frame.render_widget(paragraph, card_rect);
     super::reactions::render(frame, c, card_rect, state.render_tick, theme);
-
-    if reaction_count > consts::VOTES_GLOW {
-        super::glow::render_ring(frame, reaction_count, card_rect, area, theme);
-    }
 }

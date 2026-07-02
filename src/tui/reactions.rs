@@ -3,11 +3,12 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::widgets::Paragraph;
 
-use crate::model::confession::Confession;
+use crate::model::confession::{Confession, total_reactions};
 
 use super::theme::Theme;
 
 const SLOTS: [(i16, i16); 6] = [(-2, -1), (2, -2), (8, -1), (3, 1), (10, 1), (5, -3)];
+const MIN_REACTIONS_TO_FLOAT: i64 = 3;
 
 pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64, theme: &Theme) {
     let tokens = visible_tokens(confession, tick);
@@ -37,23 +38,20 @@ pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64,
 }
 
 fn visible_tokens(confession: &Confession, tick: u64) -> Vec<&str> {
-    let mut weighted = Vec::new();
-    for reaction in &confession.reactions {
-        let weight = reaction.count.clamp(1, 3) as usize;
-        for _ in 0..weight {
-            weighted.push(reaction.token.as_str());
-        }
-    }
-
-    if weighted.is_empty() {
+    if total_reactions(confession) < MIN_REACTIONS_TO_FLOAT {
         return Vec::new();
     }
 
-    let offset = ((tick / 2) as usize + confession.id as usize) % weighted.len();
-    let count = weighted.len().min(3);
+    let top = confession.reactions.iter().take(4).collect::<Vec<_>>();
+    if top.is_empty() {
+        return Vec::new();
+    }
+
+    let offset = ((tick / 2) as usize + confession.id as usize) % top.len();
+    let count = top.len().min(3);
     let mut out = Vec::with_capacity(count);
     for i in 0..count {
-        out.push(weighted[(offset + i) % weighted.len()]);
+        out.push(top[(offset + i) % top.len()].token.as_str());
     }
     out
 }

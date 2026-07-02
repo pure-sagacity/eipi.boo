@@ -12,14 +12,9 @@ pub const BOX_INNER_WIDTH: usize = (BOX_WIDTH - 4) as usize;
 pub const CARD_MAX_W: u16 = 48;
 pub const CARD_MIN_W: u16 = 18;
 
-// vote thresholds
-pub const VOTES_GLOW: i64 = 2;
+// reaction thresholds
 pub const VOTES_CYAN: i64 = 10;
 pub const VOTES_MAGENTA: i64 = 50;
-
-// glow
-pub const GLOW_DENSITY_HIGH: u64 = 3;
-pub const GLOW_DENSITY_LOW: u64 = 5;
 
 // camera movement
 pub const CAM_SPEED_Y: i64 = 3;

@@ -2,7 +2,6 @@ pub(crate) mod canvas;
 mod card_view;
 mod compose;
 mod confession_box;
-mod glow;
 mod help;
 mod keybinds;
 mod reaction_picker;
@@ -211,15 +210,6 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
         confession_box::render(frame, c, rect, is_selected, theme);
         reactions::render(frame, c, rect, state.render_tick, theme);
     }
-
-    glow::render(
-        frame,
-        state.confessions,
-        state.cam_x,
-        state.cam_y,
-        canvas_area,
-        theme,
-    );
 
     if state.confessions.is_empty() {
         let hint = Paragraph::new("No confessions yet. Press [n] to write the first one.")
