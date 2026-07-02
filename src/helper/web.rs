@@ -366,21 +366,41 @@ fn confession_page(
       color: #286983;
       font-weight: bold;
     }}
-    .save {{
-      margin-top: 1rem;
+    .actions {{
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }}
-    .save button {{
+    .actions button {{
       background: #f2e9e1;
       border: 1px solid #dfdad9;
       border-radius: 6px;
       padding: 0.5rem 1rem;
       color: #575279;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.15s;
     }}
-    .save button:hover {{
+    .actions button:hover {{
       background: #dfdad9;
+    }}
+    .actions button.copied {{
+      background: #56949f;
+      color: #faf4ed;
+      border-color: #56949f;
+    }}
+    .actions .share-row {{
+      display: flex;
+      gap: 0.4rem;
+    }}
+    .actions .share-row button {{
+      padding: 0.5rem 0.7rem;
     }}
   </style>
 </head>
@@ -390,11 +410,56 @@ fn confession_page(
     <p style="color: #9893a5; font-size: 0.85rem; margin-bottom: 0.5rem;">react and reply over ssh</p>
     <div class="cmd"><code>$ ssh eipi.boo</code></div>
   </div>
-  <div class="save">
-    <button onclick="saveImage()">save as image</button>
+  <div class="actions">
+    <button onclick="copyLink()"><span id="copy-icon">⎘</span> <span id="copy-text">copy link</span></button>
+    <div class="share-row">
+      <button onclick="shareX()" title="share on X">𝕏</button>
+      <button onclick="shareFB()" title="share on Facebook">f</button>
+      <button onclick="shareWA()" title="share on WhatsApp">w</button>
+      <button id="native-share" onclick="nativeShare()" title="share" style="display:none">↗ share</button>
+    </div>
+    <button onclick="saveImage()">⤓ save image</button>
   </div>
   <canvas id="canvas" style="display:none;"></canvas>
   <script>
+  const pageUrl = 'https://eipi.boo/c/{}';
+  const shareText = 'anonymous confession on eipi.boo';
+
+  function copyLink() {{
+    navigator.clipboard.writeText(pageUrl).then(() => {{
+      const btn = document.getElementById('copy-text');
+      const icon = document.getElementById('copy-icon');
+      btn.textContent = 'copied!';
+      icon.textContent = '✓';
+      btn.parentElement.classList.add('copied');
+      setTimeout(() => {{
+        btn.textContent = 'copy link';
+        icon.textContent = '⎘';
+        btn.parentElement.classList.remove('copied');
+      }}, 2000);
+    }});
+  }}
+
+  function shareX() {{
+    window.open('https://x.com/intent/tweet?url=' + encodeURIComponent(pageUrl) + '&text=' + encodeURIComponent(shareText), '_blank');
+  }}
+
+  function shareFB() {{
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(pageUrl), '_blank');
+  }}
+
+  function shareWA() {{
+    window.open('https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl), '_blank');
+  }}
+
+  function nativeShare() {{
+    navigator.share({{ title: 'confession on eipi.boo', text: shareText, url: pageUrl }}).catch(() => {{}});
+  }}
+
+  if (navigator.share) {{
+    document.getElementById('native-share').style.display = 'inline-flex';
+  }}
+
   async function saveImage() {{
     await document.fonts.ready;
     const pre = document.getElementById('card');
@@ -438,6 +503,7 @@ fn confession_page(
         id,
         html_escape(&og_desc),
         ascii_card,
+        id,
         id,
     )
 }
