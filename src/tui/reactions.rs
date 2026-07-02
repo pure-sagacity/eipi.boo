@@ -3,12 +3,22 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::widgets::Paragraph;
 
-use crate::model::confession::{Confession, total_reactions};
+use crate::model::confession::Confession;
 
 use super::theme::Theme;
 
-const SLOTS: [(i16, i16); 6] = [(-2, -1), (2, -2), (8, -1), (3, 1), (10, 1), (5, -3)];
-const MIN_REACTIONS_TO_FLOAT: i64 = 3;
+const SLOTS: [(i16, i16); 10] = [
+    (-4, -1),
+    (4, -2),
+    (12, -1),
+    (-3, 1),
+    (14, 1),
+    (6, -3),
+    (-5, -3),
+    (16, -2),
+    (-2, 2),
+    (10, 2),
+];
 
 /// Map ASCII reaction tokens to single-char glyphs for floating display
 /// so they don't look like terminal noise.
@@ -56,17 +66,13 @@ pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64,
 }
 
 fn visible_tokens(confession: &Confession, tick: u64) -> Vec<&str> {
-    if total_reactions(confession) < MIN_REACTIONS_TO_FLOAT {
-        return Vec::new();
-    }
-
-    let top = confession.reactions.iter().take(4).collect::<Vec<_>>();
+    let top = confession.reactions.iter().take(8).collect::<Vec<_>>();
     if top.is_empty() {
         return Vec::new();
     }
 
     let offset = ((tick / 2) as usize + confession.id as usize) % top.len();
-    let count = top.len().min(3);
+    let count = top.len().min(10);
     let mut out = Vec::with_capacity(count);
     for i in 0..count {
         out.push(top[(offset + i) % top.len()].token.as_str());
