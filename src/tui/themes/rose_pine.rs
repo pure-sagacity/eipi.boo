@@ -4,28 +4,28 @@ use ratatui::style::Color;
 use crate::tui::theme::Theme;
 
 pub const THEME: Theme = Theme {
-    text: Color::Indexed(255),           // text: #e0def4
-    text_secondary: Color::Indexed(249), // subtle: #908caa
-    text_dim: Color::Indexed(243),
+    text: Color::Rgb(224, 222, 244),           // text: #e0def4
+    text_secondary: Color::Rgb(144, 140, 170), // subtle: #908caa
+    text_dim: Color::Rgb(110, 106, 134),       // muted: #6e6a86
 
-    border: Color::Indexed(60),     // highlight med: #44415a
-    border_dim: Color::Indexed(59), // highlight low: #21202e
+    border: Color::Rgb(57, 53, 82),        // highlight med: #393552
+    border_dim: Color::Rgb(33, 32, 46),    // highlight low: #21202e
 
-    accent: Color::Indexed(217),        // rose: #ebbcba
-    accent_alt: Color::Indexed(111),    // foam: #9ccfd8
-    accent_search: Color::Indexed(183), // iris: #c4a7e7
-    accent_rose: Color::Indexed(217),   // rose
+    accent: Color::Rgb(235, 188, 186),        // rose: #ebbcba
+    accent_alt: Color::Rgb(156, 207, 216),    // foam: #9ccfd8
+    accent_search: Color::Rgb(196, 167, 231), // iris: #c4a7e7
+    accent_rose: Color::Rgb(235, 188, 186),   // rose
 
-    heart: Color::Indexed(204),   // love: #eb6f92
-    online: Color::Indexed(150),  // pine: #31748f
-    warning: Color::Indexed(222), // gold: #f6c177
+    heart: Color::Rgb(235, 111, 146),   // love: #eb6f92
+    online: Color::Rgb(49, 116, 143),   // pine: #31748f
+    warning: Color::Rgb(246, 193, 119), // gold: #f6c177
 
-    glow_high: Color::Indexed(183), // iris
-    glow_mid: Color::Indexed(111),  // foam
+    glow_high: Color::Rgb(196, 167, 231), // iris
+    glow_mid: Color::Rgb(156, 207, 216),  // foam
 
-    dot_red: Color::Indexed(204),    // love
-    dot_yellow: Color::Indexed(222), // gold
-    dot_green: Color::Indexed(150),  // pine
+    dot_red: Color::Rgb(235, 111, 146),    // love
+    dot_yellow: Color::Rgb(246, 193, 119), // gold
+    dot_green: Color::Rgb(49, 116, 143),   // pine
 
     terminal_bg: "#191724",
     terminal_fg: "#e0def4",

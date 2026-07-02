@@ -30,7 +30,7 @@ fn build_key(label: &str, active: bool, theme: &Theme) -> Span<'static> {
             Style::default().fg(Color::Black).bg(theme.accent_rose),
         )
     } else {
-        Span::styled(format!(" {} ", label), Style::default().fg(theme.border))
+        Span::styled(format!(" {} ", label), Style::default().fg(theme.text_secondary))
     }
 }
 
@@ -56,7 +56,7 @@ pub fn render(frame: &mut Frame, splash_frame: u8, area: Rect, theme: &Theme) {
         ['n', 'm', ',', '.', '/'],
     ];
 
-    let border = Style::default().fg(theme.border_dim);
+    let border = Style::default().fg(theme.text_dim);
     let gap = "       "; // gap between halves
 
     let mut lines: Vec<Line> = Vec::new();

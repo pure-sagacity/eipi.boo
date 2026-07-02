@@ -34,29 +34,29 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         InputMode::Browse | InputMode::CardView | InputMode::SearchResults => Line::from(vec![
             Span::styled(
                 format!("{} confessions", state.total_confessions),
-                Style::default().fg(theme.border),
+                Style::default().fg(theme.text_dim),
             ),
-            Span::styled(" · ", Style::default().fg(theme.border_dim)),
+            Span::styled(" · ", Style::default().fg(theme.text_dim)),
             Span::styled(
                 format!("{} humans", state.total_humans),
-                Style::default().fg(theme.border),
+                Style::default().fg(theme.text_dim),
             ),
-            Span::styled(" · ", Style::default().fg(theme.border_dim)),
+            Span::styled(" · ", Style::default().fg(theme.text_dim)),
             Span::styled(
                 format!("{} online", state.online),
                 Style::default().fg(theme.online),
             ),
-            Span::styled(" · ", Style::default().fg(theme.border_dim)),
-            Span::styled("pwnwriter/eipi.boo", Style::default().fg(theme.border)),
+            Span::styled(" · ", Style::default().fg(theme.text_dim)),
+            Span::styled("pwnwriter/eipi.boo", Style::default().fg(theme.text_dim)),
         ])
         .centered(),
         _ => Line::from(""),
     };
-    let info_p = Paragraph::new(info_line).style(Style::default().fg(theme.border_dim));
+    let info_p = Paragraph::new(info_line).style(Style::default().fg(theme.text_dim));
     frame.render_widget(info_p, info_area);
 
     let rule = "─".repeat(area.width as usize);
-    let rule_p = Paragraph::new(rule).style(Style::default().fg(theme.border_dim));
+    let rule_p = Paragraph::new(rule).style(Style::default().fg(theme.text_dim));
     frame.render_widget(rule_p, rule_area);
 
     if let Some(msg) = state.message

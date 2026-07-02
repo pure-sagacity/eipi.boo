@@ -442,6 +442,10 @@ impl ClientHandler {
                     self.theme_index = self.theme_picker_index;
                     let name = crate::tui::themes::ALL[self.theme_index].0;
                     self.message = Some(format!("theme: {}", name));
+                    // persist theme choice
+                    let db = self.shared.db.lock();
+                    db::set_theme(&db, self.fingerprint_str(), name);
+                    drop(db);
                     self.mode = self.return_mode();
                 }
                 (InputMode::ThemePicker, KeyEvent::Escape) => {
@@ -772,6 +776,18 @@ impl server::Handler for ClientHandler {
 
         self.shared.online.fetch_add(1, Ordering::Relaxed);
         self.reload_confessions();
+
+        // load saved theme preference
+        if let Some(saved) = {
+            let db = self.shared.db.lock();
+            db::get_theme(&db, self.fingerprint_str())
+        }
+            && let Some(idx) = crate::tui::themes::ALL
+                .iter()
+                .position(|(name, _)| *name == saved)
+        {
+            self.theme_index = idx;
+        }
 
         let (cx, cy) = canvas::best_camera(&self.confessions, self.width, self.height);
         self.cam_x = cx;
