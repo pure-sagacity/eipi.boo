@@ -26,12 +26,15 @@ fn landing_page(
   <meta property="og:title" content="eipi.boo">
   <meta property="og:description" content="{} confessions from {} strangers over ssh">
   <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{
       background: #faf4ed;
       color: #575279;
-      font-family: 'Courier New', monospace;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -166,59 +169,86 @@ fn build_ascii_card(
     let iw: usize = 46;
     let wrapped = crate::model::confession::wrap_text(text, iw - 4);
 
+    let b = "#9893a5"; // border color
     let mut lines: Vec<String> = Vec::new();
 
     // top border
-    lines.push(format!("╭{}╮", "─".repeat(iw)));
+    lines.push(format!(
+        "<span style=\"color:{b}\">╭{}╮</span>",
+        "─".repeat(iw)
+    ));
 
     // dots + age
     let age_display = format!(" {} ", age);
-    let dots = "  ● ● ●";
+    let dots = "<span style=\"color:#b4637a\">●</span> <span style=\"color:#ea9d34\">●</span> <span style=\"color:#56949f\">●</span>";
     let dots_pad = iw.saturating_sub(7 + age_display.len());
-    lines.push(format!("│{}{}{}│", dots, " ".repeat(dots_pad), age_display));
+    lines.push(format!(
+        "<span style=\"color:{b}\">│</span>  {}{}<span style=\"color:{b}\">{}</span><span style=\"color:{b}\">│</span>",
+        dots,
+        " ".repeat(dots_pad),
+        html_escape(&age_display),
+    ));
 
     // separator
-    lines.push(format!("│{}│", "─".repeat(iw)));
+    lines.push(format!(
+        "<span style=\"color:{b}\">│{}│</span>",
+        "─".repeat(iw)
+    ));
 
     // empty line
-    lines.push(format!("│{}│", " ".repeat(iw)));
+    lines.push(format!(
+        "<span style=\"color:{b}\">│</span>{}<span style=\"color:{b}\">│</span>",
+        " ".repeat(iw)
+    ));
 
     // text lines
     for line in &wrapped {
         let dcols = line.chars().count();
         let right_pad = iw.saturating_sub(dcols + 2);
         lines.push(format!(
-            "│  {}{}│",
+            "<span style=\"color:{b}\">│</span>  {}{}<span style=\"color:{b}\">│</span>",
             html_escape(line),
             " ".repeat(right_pad)
         ));
     }
 
     // empty line
-    lines.push(format!("│{}│", " ".repeat(iw)));
+    lines.push(format!(
+        "<span style=\"color:{b}\">│</span>{}<span style=\"color:{b}\">│</span>",
+        " ".repeat(iw)
+    ));
 
     // separator
-    lines.push(format!("│{}│", "─".repeat(iw)));
+    lines.push(format!(
+        "<span style=\"color:{b}\">│{}│</span>",
+        "─".repeat(iw)
+    ));
 
     // footer
     let mut footer_left = String::from("  ");
     let mut footer_left_len: usize = 2;
     if love > 0 {
-        footer_left.push_str(&format!("♥ {}", love));
+        footer_left.push_str(&format!("<span style=\"color:#b4637a\">♥</span> {}", love));
         footer_left_len += 2 + love.to_string().len();
     }
     if replies > 0 {
-        footer_left.push_str(&format!("  \u{F0367} {}", replies));
+        footer_left.push_str(&format!(
+            "  <span style=\"color:#56949f\">↩</span> {}",
+            replies
+        ));
         footer_left_len += 4 + replies.to_string().len();
     }
     if reactions > 0 {
-        footer_left.push_str(&format!("  ✦ {}", reactions));
+        footer_left.push_str(&format!(
+            "  <span style=\"color:#ea9d34\">✦</span> {}",
+            reactions
+        ));
         footer_left_len += 4 + reactions.to_string().len();
     }
     let pos_part = format!("{}  ", position);
     let footer_pad = iw.saturating_sub(footer_left_len + pos_part.len());
     lines.push(format!(
-        "│{}{}{}│",
+        "<span style=\"color:{b}\">│</span>{}{}<span style=\"color:{b}\">{}</span><span style=\"color:{b}\">│</span>",
         footer_left,
         " ".repeat(footer_pad),
         pos_part
@@ -227,7 +257,7 @@ fn build_ascii_card(
     // bottom border with stem
     let mid = iw / 2;
     lines.push(format!(
-        "╰{}┬{}╯",
+        "<span style=\"color:{b}\">╰{}┬{}╯</span>",
         "─".repeat(mid),
         "─".repeat(iw - mid - 1)
     ));
@@ -240,10 +270,23 @@ fn build_ascii_card(
         150..220 => "\\(>_<)/",
         _ => "\\(x_x)/",
     };
-    lines.push(format!("{}│", " ".repeat(center)));
-    lines.push(format!("{}{}", " ".repeat(center.saturating_sub(3)), face));
-    lines.push(format!("{}│", " ".repeat(center)));
-    lines.push(format!("{}/ \\", " ".repeat(center.saturating_sub(1))));
+    lines.push(format!(
+        "<span style=\"color:{b}\">{}│</span>",
+        " ".repeat(center)
+    ));
+    lines.push(format!(
+        "<span style=\"color:{b}\">{}{}</span>",
+        " ".repeat(center.saturating_sub(3)),
+        face
+    ));
+    lines.push(format!(
+        "<span style=\"color:{b}\">{}│</span>",
+        " ".repeat(center)
+    ));
+    lines.push(format!(
+        "<span style=\"color:{b}\">{}/ \\</span>",
+        " ".repeat(center.saturating_sub(1))
+    ));
 
     lines.join("\n")
 }
@@ -279,12 +322,15 @@ fn confession_page(
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="confession #{} | eipi.boo">
   <meta name="twitter:description" content="{}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{
       background: #faf4ed;
       color: #575279;
-      font-family: 'Courier New', monospace;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -296,6 +342,7 @@ fn confession_page(
       font-size: 14px;
       line-height: 1.4;
       color: #575279;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
     }}
     .ascii .border {{ color: #9893a5; }}
     .ascii .dots-red {{ color: #b4637a; }}
@@ -328,7 +375,7 @@ fn confession_page(
       border-radius: 6px;
       padding: 0.5rem 1rem;
       color: #575279;
-      font-family: 'Courier New', monospace;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
       font-size: 0.85rem;
       cursor: pointer;
     }}
@@ -348,7 +395,8 @@ fn confession_page(
   </div>
   <canvas id="canvas" style="display:none;"></canvas>
   <script>
-  function saveImage() {{
+  async function saveImage() {{
+    await document.fonts.ready;
     const pre = document.getElementById('card');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -356,7 +404,7 @@ fn confession_page(
     const fontSize = 14;
     const lineHeight = fontSize * 1.4;
     const padding = 40;
-    ctx.font = fontSize + 'px Courier New, monospace';
+    ctx.font = fontSize + 'px JetBrains Mono, Courier New, monospace';
     let maxWidth = 0;
     for (const line of lines) {{
       const w = ctx.measureText(line).width;
@@ -366,14 +414,14 @@ fn confession_page(
     canvas.height = lines.length * lineHeight + padding * 2;
     ctx.fillStyle = '#faf4ed';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.font = fontSize + 'px Courier New, monospace';
+    ctx.font = fontSize + 'px JetBrains Mono, Courier New, monospace';
     ctx.fillStyle = '#575279';
     ctx.textBaseline = 'top';
     for (let i = 0; i < lines.length; i++) {{
       ctx.fillText(lines[i], padding, padding + i * lineHeight);
     }}
     ctx.fillStyle = '#9893a5';
-    ctx.font = '12px Courier New, monospace';
+    ctx.font = '12px JetBrains Mono, Courier New, monospace';
     ctx.fillText('eipi.boo', canvas.width - padding - ctx.measureText('eipi.boo').width, canvas.height - 24);
     const link = document.createElement('a');
     link.download = 'confession-{}.png';
