@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
@@ -8,16 +8,7 @@ use crate::model::confession;
 use crate::server::input::InputMode;
 
 use super::RenderState;
-
-fn hint<'a>(key: &'a str, label: &'a str) -> Vec<Span<'a>> {
-    vec![
-        Span::styled(key, Style::default().fg(Color::White)),
-        Span::styled(
-            format!(" {}   ", label),
-            Style::default().fg(Color::DarkGray),
-        ),
-    ]
-}
+use super::keybinds::{KeybindHint, status_hints};
 
 pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     if area.height < 3 {
@@ -71,65 +62,36 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         return;
     }
 
-    let mut spans: Vec<Span> = Vec::new();
+    let mut leading: Vec<Span> = Vec::new();
 
     match state.mode {
-        InputMode::Browse => {
-            spans.extend(hint("↑↓/jk", "scroll"));
-            spans.extend(hint("G", "last"));
-            spans.extend(hint("tab", "select"));
-            spans.extend(hint("v", "vote"));
-            spans.extend(hint("⏎", "replies"));
-            spans.extend(hint("␣", "feed"));
-            spans.extend(hint("/", "search"));
-            spans.extend(hint("n", "confess"));
-            spans.extend(hint("T", "theme"));
-            spans.extend(hint("q", "quit"));
-        }
-        InputMode::CardView => {
-            spans.extend(hint("←→/hl", "prev/next"));
-            spans.extend(hint("v", "vote"));
-            spans.extend(hint("⏎", "replies"));
-            spans.extend(hint("/", "search"));
-            spans.extend(hint("n", "confess"));
-            spans.extend(hint("T", "theme"));
-            spans.extend(hint("␣", "canvas"));
-        }
         InputMode::Compose => {
-            spans.push(Span::styled(
+            leading.push(Span::styled(
                 format!("{}/{}", state.compose_buf.len(), confession::MAX_LENGTH),
                 Style::default().fg(theme.text_dim),
             ));
-            spans.push(Span::raw("   "));
-            spans.extend(hint("⏎", "submit"));
-            spans.extend(hint("esc", "cancel"));
+            leading.push(Span::raw("   "));
         }
         InputMode::ViewReplies => {
-            spans.push(Span::styled(
+            leading.push(Span::styled(
                 format!("{} replies", state.replies.len()),
                 Style::default().fg(theme.text_dim),
             ));
-            spans.push(Span::raw("   "));
-            spans.extend(hint("r", "reply"));
-            spans.extend(hint("↑↓/jk", "scroll"));
-            spans.extend(hint("v", "vote"));
-            spans.extend(hint("esc", "back"));
+            leading.push(Span::raw("   "));
         }
         InputMode::ComposeReply => {
             if state.reply_name_phase {
-                spans.push(Span::styled(
+                leading.push(Span::styled(
                     "name (optional): ",
                     Style::default().fg(theme.text_dim),
                 ));
-                spans.push(Span::styled(
+                leading.push(Span::styled(
                     format!("{}_", state.reply_name_buf),
                     Style::default().fg(theme.text),
                 ));
-                spans.push(Span::raw("   "));
-                spans.extend(hint("⏎", "next"));
-                spans.extend(hint("esc", "cancel"));
+                leading.push(Span::raw("   "));
             } else {
-                spans.push(Span::styled(
+                leading.push(Span::styled(
                     format!(
                         "{}/{}",
                         state.compose_buf.len(),
@@ -137,17 +99,11 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                     ),
                     Style::default().fg(theme.text_dim),
                 ));
-                spans.push(Span::raw("   "));
-                spans.extend(hint("⏎", "submit"));
-                spans.extend(hint("esc", "cancel"));
+                leading.push(Span::raw("   "));
             }
         }
-        InputMode::Search => {
-            spans.extend(hint("⏎", "search"));
-            spans.extend(hint("esc", "cancel"));
-        }
         InputMode::SearchResults => {
-            spans.push(Span::styled(
+            leading.push(Span::styled(
                 format!(
                     "{}/{} matches",
                     state.search_index + 1,
@@ -155,15 +111,85 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                 ),
                 Style::default().fg(theme.accent_search),
             ));
-            spans.push(Span::raw("   "));
-            spans.extend(hint("←→/hl", "prev/next"));
-            spans.extend(hint("v", "vote"));
-            spans.extend(hint("⏎", "replies"));
-            spans.extend(hint("esc", "back"));
+            leading.push(Span::raw("   "));
         }
-        InputMode::ConfirmQuit | InputMode::Splash | InputMode::ThemePicker | InputMode::Help => {}
+        InputMode::Browse
+        | InputMode::CardView
+        | InputMode::Search
+        | InputMode::ConfirmQuit
+        | InputMode::Splash
+        | InputMode::ThemePicker
+        | InputMode::Help => {}
     }
 
-    let line = Line::from(spans).centered();
-    frame.render_widget(Paragraph::new(line), hints_area);
+    render_hints_row(
+        frame,
+        hints_area,
+        &leading,
+        status_hints(state.mode, state.reply_name_phase),
+    );
+}
+
+fn render_hints_row(frame: &mut Frame, area: Rect, leading: &[Span<'_>], hints: &[KeybindHint]) {
+    let segments = hint_segments(hints);
+    let left_width = if leading.is_empty() {
+        0
+    } else {
+        line_width(leading) as u16
+    };
+    let gap_width = if leading.is_empty() { 0 } else { 1 };
+    let right_width = segments.iter().map(String::len).sum::<usize>() as u16;
+    let used = left_width
+        .saturating_add(gap_width)
+        .saturating_add(right_width);
+    let remaining = area.width.saturating_sub(used);
+    let left_pad = remaining / 2;
+    let right_pad = remaining - left_pad;
+
+    let chunks = Layout::horizontal([
+        Constraint::Length(left_pad),
+        Constraint::Length(left_width),
+        Constraint::Length(gap_width),
+        Constraint::Length(right_width),
+        Constraint::Length(right_pad),
+    ])
+    .split(area);
+
+    if !leading.is_empty() {
+        frame.render_widget(Paragraph::new(Line::from(leading.to_vec())), chunks[1]);
+    }
+
+    let hint_chunks = Layout::horizontal(
+        segments
+            .iter()
+            .map(|segment| Constraint::Length(segment.len() as u16))
+            .collect::<Vec<_>>(),
+    )
+    .split(chunks[3]);
+
+    for (chunk, hint) in hint_chunks.iter().zip(hints.iter().copied()) {
+        frame.render_widget(Paragraph::new(Line::from(render_hint(hint))), *chunk);
+    }
+}
+
+fn render_hint(hint: KeybindHint) -> Vec<Span<'static>> {
+    vec![
+        Span::styled(hint.key, Style::default().fg(Color::White)),
+        Span::styled(
+            format!(" {}", hint.label),
+            Style::default().fg(Color::DarkGray),
+        ),
+        Span::raw("   "),
+    ]
+}
+
+fn hint_segments(hints: &[KeybindHint]) -> Vec<String> {
+    hints
+        .iter()
+        .map(|hint| format!("{} {}   ", hint.key, hint.label))
+        .collect()
+}
+
+fn line_width(spans: &[Span<'_>]) -> usize {
+    spans.iter().map(|span| span.content.len()).sum()
 }

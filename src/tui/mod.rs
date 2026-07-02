@@ -4,6 +4,7 @@ mod compose;
 mod confession_box;
 mod glow;
 mod help;
+mod keybinds;
 mod reply_panel;
 pub(crate) mod splash;
 mod statusline;

@@ -1,57 +1,63 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Clear, Paragraph};
 
+use super::keybinds::HELP_KEYBINDS;
 use super::theme::Theme;
 
 pub fn render(frame: &mut Frame, area: Rect, theme: &Theme) {
-    let popup = centered_popup(frame, area, 58, 19);
+    let popup = centered_popup(frame, area, 60, 19);
     let block = Block::bordered().border_style(Style::default().fg(theme.border));
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
 
-    let lines = vec![
-        Line::from(""),
+    let rows = Layout::vertical(vec![Constraint::Length(1); 20]).split(inner);
+
+    render_line(
+        frame,
+        rows[1],
         Line::from(Span::styled(
             "eipi.boo",
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ))
         .centered(),
+    );
+    render_line(
+        frame,
+        rows[2],
         Line::from(Span::styled(
             "Confessions over ssh",
             Style::default().fg(theme.accent_search),
         ))
         .centered(),
+    );
+    render_line(
+        frame,
+        rows[3],
         Line::from(Span::styled(
             "browse, reply, search, and disappear.",
             Style::default().fg(theme.text_dim),
         ))
         .centered(),
-        rule(theme),
-        header_line(inner.width, theme),
-        Line::from(""),
-        keybind("move", "↑↓←→ / hjkl", theme),
-        keybind("mouse", "🖱 click / wheel", theme),
-        keybind("tab", "select next confession", theme),
-        keybind("enter", "open replies", theme),
-        keybind("space", "open feed", theme),
-        keybind("v", "upvote", theme),
-        keybind("n", "new confession", theme),
-        keybind("/", "search", theme),
-        keybind("r", "reply", theme),
-        keybind("T", "themes", theme),
-        keybind("G", "jump to latest", theme),
-        Line::from(""),
-        rule(theme),
+    );
+    render_rule(frame, rows[4], theme);
+    render_header(frame, rows[5], theme);
+
+    for (i, hint) in HELP_KEYBINDS.iter().enumerate() {
+        render_keybind_row(frame, rows[7 + i], hint.key, hint.label, theme);
+    }
+
+    render_rule(frame, rows[18], theme);
+    render_line(
+        frame,
+        rows[19],
         Line::from(Span::styled(
             " github.com/pwnwriter/eipi.boo/issues/new",
             Style::default().fg(theme.text_dim),
         )),
-    ];
-
-    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
+    );
 }
 
 fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
@@ -67,45 +73,63 @@ fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
     popup
 }
 
-fn keybind(key: &str, value: &str, theme: &Theme) -> Line<'static> {
-    let key_width: usize = 18;
-    let pad = key_width.saturating_sub(display_width(key));
-    Line::from(vec![
-        Span::styled(
-            format!(" {}{} ", key, " ".repeat(pad)),
+fn render_line(frame: &mut Frame, area: Rect, line: Line<'static>) {
+    frame.render_widget(Paragraph::new(line), area);
+}
+
+fn render_rule(frame: &mut Frame, area: Rect, theme: &Theme) {
+    frame.render_widget(
+        Paragraph::new("─".repeat(area.width as usize))
+            .style(Style::default().fg(theme.border_dim)),
+        area,
+    );
+}
+
+fn render_header(frame: &mut Frame, area: Rect, theme: &Theme) {
+    let cols = Layout::horizontal([Constraint::Min(0), Constraint::Length(18)]).split(area);
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            " keybinds",
+            Style::default().fg(theme.accent),
+        ))),
+        cols[0],
+    );
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled("close: ", Style::default().fg(theme.text_dim)),
+            Span::styled("esc q ? enter", Style::default().fg(theme.warning)),
+        ])),
+        cols[1],
+    );
+}
+
+fn render_keybind_row(frame: &mut Frame, area: Rect, key: &str, value: &str, theme: &Theme) {
+    let cols = Layout::horizontal([
+        Constraint::Length(18),
+        Constraint::Length(2),
+        Constraint::Min(0),
+    ])
+    .split(area);
+
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            format!(" {}", key),
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("│ ", Style::default().fg(theme.border_dim)),
-        Span::styled(value.to_string(), Style::default().fg(theme.text_secondary)),
-    ])
-}
-
-fn rule(theme: &Theme) -> Line<'static> {
-    Line::from(Span::styled(
-        "────────────────────────────────────────────────────────",
-        Style::default().fg(theme.border_dim),
-    ))
-}
-
-fn header_line(width: u16, theme: &Theme) -> Line<'static> {
-    let left = " keybinds";
-    let right_label = "close: ";
-    let right_value = "esc q ? enter";
-    let used = display_width(left) + display_width(right_label) + display_width(right_value);
-    let gap = usize::from(width).saturating_sub(used);
-
-    Line::from(vec![
-        Span::styled(left.to_string(), Style::default().fg(theme.accent)),
-        Span::raw(" ".repeat(gap)),
-        Span::styled(right_label.to_string(), Style::default().fg(theme.text_dim)),
-        Span::styled(right_value.to_string(), Style::default().fg(theme.warning)),
-    ])
-}
-
-fn display_width(text: &str) -> usize {
-    text.chars().map(char_width).sum()
-}
-
-fn char_width(ch: char) -> usize {
-    if ch.is_ascii() { 1 } else { 2 }
+        ))),
+        cols[0],
+    );
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            "│ ",
+            Style::default().fg(theme.border_dim),
+        ))),
+        cols[1],
+    );
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            value.to_string(),
+            Style::default().fg(theme.text_secondary),
+        ))),
+        cols[2],
+    );
 }

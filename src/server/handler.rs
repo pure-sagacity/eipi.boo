@@ -304,6 +304,334 @@ impl ClientHandler {
         self.reload_confessions();
     }
 
+    fn handle_help_event(&mut self, event: &KeyEvent) {
+        if matches!(
+            event,
+            KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char('?') | KeyEvent::Enter
+        ) {
+            self.mode = self.help_return_mode;
+        }
+    }
+
+    fn clear_compose(&mut self) {
+        self.compose_buf.clear();
+    }
+
+    fn clear_reply_compose(&mut self) {
+        self.compose_buf.clear();
+        self.reply_name_buf.clear();
+    }
+
+    fn clear_search(&mut self) {
+        self.search_buf.clear();
+    }
+
+    fn clear_search_results(&mut self) {
+        self.search_results.clear();
+        self.search_buf.clear();
+    }
+
+    fn close_replies(&mut self) {
+        self.mode = self.return_mode();
+        self.came_from_card = false;
+        self.viewing_confession = None;
+        self.replies.clear();
+    }
+
+    fn open_compose(&mut self, came_from_card: bool) {
+        self.came_from_card = came_from_card;
+        self.mode = InputMode::Compose;
+        self.clear_compose();
+    }
+
+    fn open_search(&mut self) {
+        self.mode = InputMode::Search;
+        self.clear_search();
+    }
+
+    fn open_theme_picker(&mut self) {
+        self.theme_picker_index = self.theme_index;
+        self.mode = InputMode::ThemePicker;
+    }
+
+    fn open_help(&mut self) {
+        self.help_return_mode = self.mode;
+        self.mode = InputMode::Help;
+    }
+
+    fn open_reply_compose(&mut self) {
+        self.mode = InputMode::ComposeReply;
+        self.clear_reply_compose();
+        self.reply_name_phase = true;
+    }
+
+    fn handle_browse_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Char('q') => self.mode = InputMode::ConfirmQuit,
+            KeyEvent::Up | KeyEvent::Char('k') => self.cam_y -= crate::helper::consts::CAM_SPEED_Y,
+            KeyEvent::Down | KeyEvent::Char('j') => {
+                self.cam_y += crate::helper::consts::CAM_SPEED_Y
+            }
+            KeyEvent::Left | KeyEvent::Char('h') => {
+                self.cam_x -= crate::helper::consts::CAM_SPEED_X
+            }
+            KeyEvent::Right | KeyEvent::Char('l') => {
+                self.cam_x += crate::helper::consts::CAM_SPEED_X
+            }
+            KeyEvent::Tab => self.cycle_selection(),
+            KeyEvent::Enter => {
+                self.came_from_card = false;
+                self.open_replies();
+            }
+            KeyEvent::Char('v') => self.upvote_selected(),
+            KeyEvent::Char('n') => self.open_compose(false),
+            KeyEvent::MouseClick(sx, sy) => self.select_at_screen(*sx, *sy),
+            KeyEvent::Char(' ') if !self.confessions.is_empty() => {
+                self.card_index = self.selected.unwrap_or(0);
+                self.mode = InputMode::CardView;
+            }
+            KeyEvent::Char('G') => {
+                if let Some(last_idx) = self.confessions.len().checked_sub(1) {
+                    let last = &self.confessions[last_idx];
+                    self.cam_x = last.x - self.width as i64 / 2;
+                    self.cam_y = last.y - self.height as i64 / 2;
+                    self.selected = Some(last_idx);
+                }
+            }
+            KeyEvent::Char('/') => self.open_search(),
+            KeyEvent::Char('T') => self.open_theme_picker(),
+            KeyEvent::Char('?') => self.open_help(),
+            _ => {}
+        }
+    }
+
+    fn handle_card_view_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Right | KeyEvent::Char('l') if !self.confessions.is_empty() => {
+                self.card_index = (self.card_index + 1) % self.confessions.len();
+                self.selected = Some(self.card_index);
+            }
+            KeyEvent::Left | KeyEvent::Char('h') if !self.confessions.is_empty() => {
+                self.card_index = if self.card_index == 0 {
+                    self.confessions.len() - 1
+                } else {
+                    self.card_index - 1
+                };
+                self.selected = Some(self.card_index);
+            }
+            KeyEvent::MouseClick(sx, _) if !self.confessions.is_empty() => {
+                if *sx < self.width / 2 {
+                    self.card_index = if self.card_index == 0 {
+                        self.confessions.len() - 1
+                    } else {
+                        self.card_index - 1
+                    };
+                } else {
+                    self.card_index = (self.card_index + 1) % self.confessions.len();
+                }
+                self.selected = Some(self.card_index);
+            }
+            KeyEvent::Char('v') => {
+                self.selected = Some(self.card_index);
+                self.upvote_selected();
+            }
+            KeyEvent::Enter => {
+                self.selected = Some(self.card_index);
+                self.came_from_card = true;
+                self.open_replies();
+            }
+            KeyEvent::Char('n') => self.open_compose(true),
+            KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char(' ') => {
+                self.selected = Some(self.card_index);
+                self.mode = InputMode::Browse;
+            }
+            KeyEvent::Char('/') => self.open_search(),
+            KeyEvent::Char('T') => self.open_theme_picker(),
+            KeyEvent::Char('?') => self.open_help(),
+            _ => {}
+        }
+    }
+
+    fn handle_theme_picker_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Up | KeyEvent::Char('k') => {
+                let count = crate::tui::themes::ALL.len();
+                self.theme_picker_index = if self.theme_picker_index == 0 {
+                    count - 1
+                } else {
+                    self.theme_picker_index - 1
+                };
+                self.theme_index = self.theme_picker_index;
+            }
+            KeyEvent::Down | KeyEvent::Char('j') => {
+                let count = crate::tui::themes::ALL.len();
+                self.theme_picker_index = (self.theme_picker_index + 1) % count;
+                self.theme_index = self.theme_picker_index;
+            }
+            KeyEvent::Enter => {
+                self.theme_index = self.theme_picker_index;
+                let name = crate::tui::themes::ALL[self.theme_index].0;
+                self.message = Some(format!("theme: {}", name));
+                let db = self.shared.db.lock();
+                db::set_theme(&db, self.fingerprint_str(), name);
+                drop(db);
+                self.mode = self.return_mode();
+            }
+            KeyEvent::Escape => self.mode = self.return_mode(),
+            _ => {}
+        }
+    }
+
+    fn handle_confirm_quit_event(&mut self, event: &KeyEvent) -> bool {
+        match event {
+            KeyEvent::Char('q') | KeyEvent::Enter => true,
+            _ => {
+                self.mode = InputMode::Browse;
+                false
+            }
+        }
+    }
+
+    fn handle_view_replies_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Escape | KeyEvent::Char('q') => self.close_replies(),
+            KeyEvent::Up | KeyEvent::Char('k') => {
+                self.reply_scroll = self.reply_scroll.saturating_sub(1);
+            }
+            KeyEvent::Down | KeyEvent::Char('j') if self.reply_scroll + 1 < self.replies.len() => {
+                self.reply_scroll += 1;
+            }
+            KeyEvent::Char('v') => self.upvote_selected(),
+            KeyEvent::Char('r') => self.open_reply_compose(),
+            KeyEvent::Char('?') => self.open_help(),
+            _ => {}
+        }
+    }
+
+    fn handle_compose_reply_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Escape => {
+                self.mode = InputMode::ViewReplies;
+                self.clear_reply_compose();
+            }
+            KeyEvent::Enter => {
+                if self.reply_name_phase {
+                    self.reply_name_phase = false;
+                } else {
+                    self.submit_reply();
+                }
+            }
+            KeyEvent::Char(c) => {
+                if self.reply_name_phase {
+                    if self.reply_name_buf.len() < crate::helper::consts::MAX_REPLY_NAME_LENGTH {
+                        self.reply_name_buf.push(*c);
+                    }
+                } else if self.compose_buf.len() < reply::MAX_LENGTH {
+                    self.compose_buf.push(*c);
+                }
+            }
+            KeyEvent::Backspace => {
+                if self.reply_name_phase {
+                    self.reply_name_buf.pop();
+                } else {
+                    self.compose_buf.pop();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_search_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Escape => {
+                self.mode = self.return_mode();
+                self.clear_search();
+            }
+            KeyEvent::Enter => {
+                let query = self.search_buf.to_lowercase();
+                if query.is_empty() {
+                    self.mode = self.return_mode();
+                } else {
+                    self.search_results = self
+                        .confessions
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, c)| c.text.to_lowercase().contains(&query))
+                        .map(|(i, _)| i)
+                        .collect();
+                    if self.search_results.is_empty() {
+                        self.message = Some(format!("No results for \"{}\"", self.search_buf));
+                        self.mode = self.return_mode();
+                    } else {
+                        self.search_index = 0;
+                        self.card_index = self.search_results[0];
+                        self.selected = Some(self.card_index);
+                        self.mode = InputMode::SearchResults;
+                    }
+                }
+            }
+            KeyEvent::Char(c) => self.search_buf.push(*c),
+            KeyEvent::Backspace => {
+                self.search_buf.pop();
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_search_results_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Right | KeyEvent::Char('l') if !self.search_results.is_empty() => {
+                self.search_index = (self.search_index + 1) % self.search_results.len();
+                self.card_index = self.search_results[self.search_index];
+                self.selected = Some(self.card_index);
+            }
+            KeyEvent::Left | KeyEvent::Char('h') if !self.search_results.is_empty() => {
+                self.search_index = if self.search_index == 0 {
+                    self.search_results.len() - 1
+                } else {
+                    self.search_index - 1
+                };
+                self.card_index = self.search_results[self.search_index];
+                self.selected = Some(self.card_index);
+            }
+            KeyEvent::Char('v') => {
+                self.selected = Some(self.card_index);
+                self.upvote_selected();
+            }
+            KeyEvent::Enter => {
+                self.selected = Some(self.card_index);
+                self.came_from_card = true;
+                self.open_replies();
+            }
+            KeyEvent::Escape | KeyEvent::Char('q') => {
+                self.clear_search_results();
+                self.mode = InputMode::Browse;
+            }
+            KeyEvent::Char('?') => self.open_help(),
+            _ => {}
+        }
+    }
+
+    fn handle_compose_event(&mut self, event: &KeyEvent) {
+        match event {
+            KeyEvent::Escape => {
+                self.mode = self.return_mode();
+                self.clear_compose();
+            }
+            KeyEvent::Enter => {
+                self.submit_confession();
+                self.mode = self.return_mode();
+            }
+            KeyEvent::Char(c) if self.compose_buf.len() < confession::MAX_LENGTH => {
+                self.compose_buf.push(*c);
+            }
+            KeyEvent::Backspace => {
+                self.compose_buf.pop();
+            }
+            _ => {}
+        }
+    }
+
     fn process_input(&mut self, events: Vec<KeyEvent>) -> bool {
         for event in events {
             if self.message.is_some()
@@ -313,300 +641,22 @@ impl ClientHandler {
                 self.message = None;
             }
 
-            match (&self.mode, &event) {
-                (
-                    InputMode::Help,
-                    KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char('?') | KeyEvent::Enter,
-                ) => {
-                    self.mode = self.help_return_mode;
-                }
-                (InputMode::Browse, KeyEvent::Char('q')) => {
-                    self.mode = InputMode::ConfirmQuit;
-                }
-                (InputMode::Browse, KeyEvent::Up | KeyEvent::Char('k')) => {
-                    self.cam_y -= crate::helper::consts::CAM_SPEED_Y
-                }
-                (InputMode::Browse, KeyEvent::Down | KeyEvent::Char('j')) => {
-                    self.cam_y += crate::helper::consts::CAM_SPEED_Y
-                }
-                (InputMode::Browse, KeyEvent::Left | KeyEvent::Char('h')) => {
-                    self.cam_x -= crate::helper::consts::CAM_SPEED_X
-                }
-                (InputMode::Browse, KeyEvent::Right | KeyEvent::Char('l')) => {
-                    self.cam_x += crate::helper::consts::CAM_SPEED_X
-                }
-                (InputMode::Browse, KeyEvent::Tab) => self.cycle_selection(),
-                (InputMode::Browse, KeyEvent::Enter) => {
-                    self.came_from_card = false;
-                    self.open_replies();
-                }
-                (InputMode::Browse, KeyEvent::Char('v')) => self.upvote_selected(),
-                (InputMode::Browse, KeyEvent::Char('n')) => {
-                    self.mode = InputMode::Compose;
-                    self.compose_buf.clear();
-                }
-                (InputMode::Browse, KeyEvent::MouseClick(sx, sy)) => {
-                    self.select_at_screen(*sx, *sy);
-                }
-                (InputMode::Browse, KeyEvent::Char(' ')) if !self.confessions.is_empty() => {
-                    self.card_index = self.selected.unwrap_or(0);
-                    self.mode = InputMode::CardView;
-                }
-                (InputMode::Browse, KeyEvent::Char('G')) => {
-                    if let Some(last_idx) = self.confessions.len().checked_sub(1) {
-                        let last = &self.confessions[last_idx];
-                        self.cam_x = last.x - self.width as i64 / 2;
-                        self.cam_y = last.y - self.height as i64 / 2;
-                        self.selected = Some(last_idx);
+            match self.mode {
+                InputMode::Help => self.handle_help_event(&event),
+                InputMode::Browse => self.handle_browse_event(&event),
+                InputMode::CardView => self.handle_card_view_event(&event),
+                InputMode::ThemePicker => self.handle_theme_picker_event(&event),
+                InputMode::ConfirmQuit => {
+                    if self.handle_confirm_quit_event(&event) {
+                        return true;
                     }
                 }
-
-                (InputMode::CardView, KeyEvent::Right | KeyEvent::Char('l'))
-                    if !self.confessions.is_empty() =>
-                {
-                    self.card_index = (self.card_index + 1) % self.confessions.len();
-                    self.selected = Some(self.card_index);
-                }
-                (InputMode::CardView, KeyEvent::Left | KeyEvent::Char('h'))
-                    if !self.confessions.is_empty() =>
-                {
-                    self.card_index = if self.card_index == 0 {
-                        self.confessions.len() - 1
-                    } else {
-                        self.card_index - 1
-                    };
-                    self.selected = Some(self.card_index);
-                }
-                (InputMode::CardView, KeyEvent::MouseClick(sx, _))
-                    if !self.confessions.is_empty() =>
-                {
-                    if *sx < self.width / 2 {
-                        self.card_index = if self.card_index == 0 {
-                            self.confessions.len() - 1
-                        } else {
-                            self.card_index - 1
-                        };
-                    } else {
-                        self.card_index = (self.card_index + 1) % self.confessions.len();
-                    }
-                    self.selected = Some(self.card_index);
-                }
-                (InputMode::CardView, KeyEvent::Char('v')) => {
-                    self.selected = Some(self.card_index);
-                    self.upvote_selected();
-                }
-                (InputMode::CardView, KeyEvent::Enter) => {
-                    self.selected = Some(self.card_index);
-                    self.came_from_card = true;
-                    self.open_replies();
-                }
-                (InputMode::CardView, KeyEvent::Char('n')) => {
-                    self.came_from_card = true;
-                    self.mode = InputMode::Compose;
-                    self.compose_buf.clear();
-                }
-                (
-                    InputMode::CardView,
-                    KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char(' '),
-                ) => {
-                    self.selected = Some(self.card_index);
-                    self.mode = InputMode::Browse;
-                }
-
-                (InputMode::Browse | InputMode::CardView, KeyEvent::Char('/')) => {
-                    self.mode = InputMode::Search;
-                    self.search_buf.clear();
-                }
-
-                (InputMode::Browse | InputMode::CardView, KeyEvent::Char('T')) => {
-                    self.theme_picker_index = self.theme_index;
-                    self.mode = InputMode::ThemePicker;
-                }
-
-                (
-                    InputMode::Browse
-                    | InputMode::CardView
-                    | InputMode::ViewReplies
-                    | InputMode::SearchResults,
-                    KeyEvent::Char('?'),
-                ) => {
-                    self.help_return_mode = self.mode;
-                    self.mode = InputMode::Help;
-                }
-
-                (InputMode::ThemePicker, KeyEvent::Up | KeyEvent::Char('k')) => {
-                    let count = crate::tui::themes::ALL.len();
-                    self.theme_picker_index = if self.theme_picker_index == 0 {
-                        count - 1
-                    } else {
-                        self.theme_picker_index - 1
-                    };
-                    // live preview
-                    self.theme_index = self.theme_picker_index;
-                }
-                (InputMode::ThemePicker, KeyEvent::Down | KeyEvent::Char('j')) => {
-                    let count = crate::tui::themes::ALL.len();
-                    self.theme_picker_index = (self.theme_picker_index + 1) % count;
-                    // live preview
-                    self.theme_index = self.theme_picker_index;
-                }
-                (InputMode::ThemePicker, KeyEvent::Enter) => {
-                    self.theme_index = self.theme_picker_index;
-                    let name = crate::tui::themes::ALL[self.theme_index].0;
-                    self.message = Some(format!("theme: {}", name));
-                    // persist theme choice
-                    let db = self.shared.db.lock();
-                    db::set_theme(&db, self.fingerprint_str(), name);
-                    drop(db);
-                    self.mode = self.return_mode();
-                }
-                (InputMode::ThemePicker, KeyEvent::Escape) => {
-                    self.mode = self.return_mode();
-                }
-
-                (InputMode::ConfirmQuit, KeyEvent::Char('q') | KeyEvent::Enter) => {
-                    return true;
-                }
-                (InputMode::ConfirmQuit, _) => {
-                    self.mode = InputMode::Browse;
-                }
-
-                (InputMode::ViewReplies, KeyEvent::Escape | KeyEvent::Char('q')) => {
-                    self.mode = self.return_mode();
-                    self.came_from_card = false;
-                    self.viewing_confession = None;
-                    self.replies.clear();
-                }
-                (InputMode::ViewReplies, KeyEvent::Up | KeyEvent::Char('k')) => {
-                    self.reply_scroll = self.reply_scroll.saturating_sub(1);
-                }
-                (InputMode::ViewReplies, KeyEvent::Down | KeyEvent::Char('j'))
-                    if self.reply_scroll + 1 < self.replies.len() =>
-                {
-                    self.reply_scroll += 1;
-                }
-                (InputMode::ViewReplies, KeyEvent::Char('v')) => self.upvote_selected(),
-                (InputMode::ViewReplies, KeyEvent::Char('r')) => {
-                    self.mode = InputMode::ComposeReply;
-                    self.compose_buf.clear();
-                    self.reply_name_buf.clear();
-                    self.reply_name_phase = true;
-                }
-
-                (InputMode::ComposeReply, KeyEvent::Escape) => {
-                    self.mode = InputMode::ViewReplies;
-                    self.compose_buf.clear();
-                    self.reply_name_buf.clear();
-                }
-                (InputMode::ComposeReply, KeyEvent::Enter) => {
-                    if self.reply_name_phase {
-                        self.reply_name_phase = false;
-                    } else {
-                        self.submit_reply();
-                    }
-                }
-                (InputMode::ComposeReply, KeyEvent::Char(c)) => {
-                    if self.reply_name_phase {
-                        if self.reply_name_buf.len() < crate::helper::consts::MAX_REPLY_NAME_LENGTH
-                        {
-                            self.reply_name_buf.push(*c);
-                        }
-                    } else if self.compose_buf.len() < reply::MAX_LENGTH {
-                        self.compose_buf.push(*c);
-                    }
-                }
-                (InputMode::ComposeReply, KeyEvent::Backspace) => {
-                    if self.reply_name_phase {
-                        self.reply_name_buf.pop();
-                    } else {
-                        self.compose_buf.pop();
-                    }
-                }
-
-                (InputMode::Search, KeyEvent::Escape) => {
-                    self.mode = self.return_mode();
-                    self.search_buf.clear();
-                }
-                (InputMode::Search, KeyEvent::Enter) => {
-                    let query = self.search_buf.to_lowercase();
-                    if query.is_empty() {
-                        self.mode = self.return_mode();
-                    } else {
-                        self.search_results = self
-                            .confessions
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, c)| c.text.to_lowercase().contains(&query))
-                            .map(|(i, _)| i)
-                            .collect();
-                        if self.search_results.is_empty() {
-                            self.message = Some(format!("No results for \"{}\"", self.search_buf));
-                            self.mode = self.return_mode();
-                        } else {
-                            self.search_index = 0;
-                            self.card_index = self.search_results[0];
-                            self.selected = Some(self.card_index);
-                            self.mode = InputMode::SearchResults;
-                        }
-                    }
-                }
-                (InputMode::Search, KeyEvent::Char(c)) => {
-                    self.search_buf.push(*c);
-                }
-                (InputMode::Search, KeyEvent::Backspace) => {
-                    self.search_buf.pop();
-                }
-
-                (InputMode::SearchResults, KeyEvent::Right | KeyEvent::Char('l'))
-                    if !self.search_results.is_empty() =>
-                {
-                    self.search_index = (self.search_index + 1) % self.search_results.len();
-                    self.card_index = self.search_results[self.search_index];
-                    self.selected = Some(self.card_index);
-                }
-                (InputMode::SearchResults, KeyEvent::Left | KeyEvent::Char('h'))
-                    if !self.search_results.is_empty() =>
-                {
-                    self.search_index = if self.search_index == 0 {
-                        self.search_results.len() - 1
-                    } else {
-                        self.search_index - 1
-                    };
-                    self.card_index = self.search_results[self.search_index];
-                    self.selected = Some(self.card_index);
-                }
-                (InputMode::SearchResults, KeyEvent::Char('v')) => {
-                    self.selected = Some(self.card_index);
-                    self.upvote_selected();
-                }
-                (InputMode::SearchResults, KeyEvent::Enter) => {
-                    self.selected = Some(self.card_index);
-                    self.came_from_card = true;
-                    self.open_replies();
-                }
-                (InputMode::SearchResults, KeyEvent::Escape | KeyEvent::Char('q')) => {
-                    self.search_results.clear();
-                    self.search_buf.clear();
-                    self.mode = InputMode::Browse;
-                }
-
-                (InputMode::Compose, KeyEvent::Escape) => {
-                    self.mode = self.return_mode();
-                    self.compose_buf.clear();
-                }
-                (InputMode::Compose, KeyEvent::Enter) => {
-                    self.submit_confession();
-                    self.mode = self.return_mode();
-                }
-                (InputMode::Compose, KeyEvent::Char(c))
-                    if self.compose_buf.len() < confession::MAX_LENGTH =>
-                {
-                    self.compose_buf.push(*c);
-                }
-                (InputMode::Compose, KeyEvent::Backspace) => {
-                    self.compose_buf.pop();
-                }
-                _ => {}
+                InputMode::ViewReplies => self.handle_view_replies_event(&event),
+                InputMode::ComposeReply => self.handle_compose_reply_event(&event),
+                InputMode::Search => self.handle_search_event(&event),
+                InputMode::SearchResults => self.handle_search_results_event(&event),
+                InputMode::Compose => self.handle_compose_event(&event),
+                InputMode::Splash => {}
             }
         }
         false
