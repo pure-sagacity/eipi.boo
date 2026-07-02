@@ -1,47 +1,83 @@
 <div align="center">
-  <h1><code>$ ssh eipi.boo</code></h1> 
+  <h1><code>$ ssh eipi.boo</code></h1>
+  <p>🫶🏼 confess over ssh.</p>
 </div>
 
 
+`eipi.boo`: An ssh app where you write confessions and they float around on a shared canvas. everyone sees the same world. you can react, reply, search, change themes, all from your terminal.
+
+built with [russh](https://github.com/Russh/russh) + [ratatui](https://github.com/ratatui/ratatui) in rust.
 
 https://github.com/user-attachments/assets/c5d62780-fa3a-46f6-9192-b60987526d7d
 
 
+## keybinds
 
-<details>
-<summary><strong>Security & Privacy</strong></summary>
+| key | what it does |
+|-----|-------------|
+| `h/j/k/l` or arrows | move around the canvas |
+| `n` | write a confession |
+| `space` | card view (flip through confessions) |
+| `tab` | cycle selection |
+| `enter` | view replies |
+| `r` | reply to a confession |
+| `f` | react |
+| `/` | search |
+| `T` | change theme |
+| `?` | help |
+| `q` | quit |
 
-**What "anonymous" means here:** Other users can't see who posted what. There are no usernames, no accounts, no profiles. Your confessions, votes, and replies are not tied to any visible identity.
+## themes
 
-**What the server can see:**
-- Your SSH public key fingerprint (SHA-256):  used for rate limiting and vote deduplication, not displayed anywhere
-- Your IP address: visible in connection logs like any server, not stored in the database, i myself won't even go ahead and read those ip's unless something happens on the server usually. 
-- Your confessions, votes, and replies, stored in SQLite with only the fingerprint as a `hash` not raw fingerprint to identify the auther, btw i public my gpg and ssh public key since 5 years and haven't happend anything wrong yet. 
+17 themes built in. press `T` to pick one. it persists across sessions and changes your whole terminal colors (background, foreground, everything).
 
-**What the server cannot do:**
-- Access your files, shell, or anything on your machine
-- Read your private SSH key
-- Forward your SSH agent or X11 (these are off by default, you'd have to explicitly pass `-A` or `-X`)
+rose pine, rose pine moon, rose pine dawn, catppuccin, catppuccin latte, catppuccin frappe, catppuccin macchiato, dracula, gruvbox, nord, tokyo night, kanagawa, everforest, one dark, monokai, solarized, and the default.
 
-**If you don't trust the live server**, clone the repo and run your own:
+adding a theme is just dropping a file in `src/tui/themes/` and registering it in `mod.rs`.
+
+## run your own
+
 ```
 git clone https://github.com/pwnwriter/eipi.boo
 cargo build --release
 EIPI_LISTEN=0.0.0.0:2222 ./target/release/eipi
 ```
-</details>
+
+or with nix:
+```
+nix develop
+cargo run
+ssh localhost -p 2222
+```
+
+there's a [justfile](justfile) too: `just build`, `just deploy`, `just fmt`, etc.
+
+## how it works
+
+you ssh in, the server gives you a TUI. confessions are stored in sqlite. your ssh fingerprint is hashed (sha256 of sha256) and used for rate limiting and reaction dedup. it's never displayed. no accounts, no passwords, no cookies.
+
+the canvas is infinite. confessions get placed randomly with spacing so they don't overlap. popular ones glow. reactions float around them.
 
 <details>
-<summary><strong>Was AI used while building this?</strong></summary>
+<summary><strong>security & privacy</strong></summary>
 
-Yes, AI was used as an assistant, not as the author. This isn't vibe coded. I know what every function does and why it's there. I built this to learn how SSH apps work in Rust using [russh](https://github.com/Russh/russh) and [ratatui](https://github.com/ratatui/ratatui). My friends loved the idea so I ended up publishing it. I used LLMs the same way I use docs or Stack Overflow, to write better code, not to write code for me. I personally don't like vibe coding either. 
+**what the server sees:**
+- your ssh public key fingerprint (hashed): used for rate limiting, never displayed
+- your ip: visible in connection logs like any server, not stored in the db
+- your confessions, reactions, and replies: stored with only the hashed fingerprint
+
+**what it can't do:**
+- access your files, shell, or anything on your machine
+- read your private ssh key
+- forward your ssh agent or x11
+
 </details>
 
-## Contributing
+## contributing
 
-Pull requests and contributions are welcome by all means. Feel free to [open an issue](https://github.com/pwnwriter/eipi.boo/issues/new) or submit a PR.
+prs welcome. [open an issue](https://github.com/pwnwriter/eipi.boo/issues/new) or just send a pr.
 
-## License
+## license
 
 [MIT](LICENSE)
 
