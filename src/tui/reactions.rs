@@ -10,9 +10,26 @@ use super::theme::Theme;
 const SLOTS: [(i16, i16); 6] = [(-2, -1), (2, -2), (8, -1), (3, 1), (10, 1), (5, -3)];
 const MIN_REACTIONS_TO_FLOAT: i64 = 3;
 
+/// Map ASCII reaction tokens to single-char glyphs for floating display
+/// so they don't look like terminal noise.
+fn float_glyph(token: &str) -> &'static str {
+    match token {
+        "♥" => "♥",
+        ":)" => "☺",
+        ":/" => "·",
+        "==" => "≡",
+        "**" => "✧",
+        "~~" => "~",
+        "!!" => "!",
+        "..." => "·",
+        _ => "✦",
+    }
+}
+
 pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64, theme: &Theme) {
     let tokens = visible_tokens(confession, tick);
     for (i, token) in tokens.iter().enumerate() {
+        let glyph = float_glyph(token);
         let (dx, dy) = SLOTS[i % SLOTS.len()];
         let x = area.x as i16 + dx + ((tick as i16 + confession.id as i16 + i as i16) % 2);
         let y = area.y as i16 + dy - ((tick as i16 + i as i16) % 2);
@@ -21,7 +38,8 @@ pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64,
             continue;
         }
 
-        let rect = Rect::new(x as u16, y as u16, token.len() as u16, 1);
+        let glyph_w = glyph.len() as u16;
+        let rect = Rect::new(x as u16, y as u16, glyph_w, 1);
         if rect.right() > frame.area().right() || rect.bottom() > frame.area().bottom() {
             continue;
         }
@@ -33,7 +51,7 @@ pub fn render(frame: &mut Frame, confession: &Confession, area: Rect, tick: u64,
         } else {
             Style::default().fg(theme.text_dim)
         };
-        frame.render_widget(Paragraph::new(*token).style(style), rect);
+        frame.render_widget(Paragraph::new(glyph).style(style), rect);
     }
 }
 
