@@ -47,6 +47,8 @@ pub(crate) struct ClientHandler {
     search_index: usize,
     splash_frame: u8,
     splash_done: Arc<std::sync::atomic::AtomicBool>,
+    theme_index: usize,
+    theme_picker_index: usize,
     terminal: Option<Terminal<CrosstermBackend<TermWriter>>>,
     writer: TermWriter,
 }
@@ -79,6 +81,8 @@ impl ClientHandler {
             search_index: 0,
             splash_frame: 0,
             splash_done: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            theme_index: 0,
+            theme_picker_index: 0,
             terminal: None,
             writer: TermWriter::default(),
         }
@@ -406,11 +410,42 @@ impl ClientHandler {
                     self.search_buf.clear();
                 }
 
+                (InputMode::Browse | InputMode::CardView, KeyEvent::Char('T')) => {
+                    self.theme_picker_index = self.theme_index;
+                    self.mode = InputMode::ThemePicker;
+                }
+
                 (InputMode::Browse, KeyEvent::Char('?')) => {
                     self.message = Some(
                         "bugs/features → https://github.com/pwnwriter/eipi.boo/issues/new"
                             .to_string(),
                     );
+                }
+
+                (InputMode::ThemePicker, KeyEvent::Up | KeyEvent::Char('k')) => {
+                    let count = crate::tui::themes::ALL.len();
+                    self.theme_picker_index = if self.theme_picker_index == 0 {
+                        count - 1
+                    } else {
+                        self.theme_picker_index - 1
+                    };
+                    // live preview
+                    self.theme_index = self.theme_picker_index;
+                }
+                (InputMode::ThemePicker, KeyEvent::Down | KeyEvent::Char('j')) => {
+                    let count = crate::tui::themes::ALL.len();
+                    self.theme_picker_index = (self.theme_picker_index + 1) % count;
+                    // live preview
+                    self.theme_index = self.theme_picker_index;
+                }
+                (InputMode::ThemePicker, KeyEvent::Enter) => {
+                    self.theme_index = self.theme_picker_index;
+                    let name = crate::tui::themes::ALL[self.theme_index].0;
+                    self.message = Some(format!("theme: {}", name));
+                    self.mode = self.return_mode();
+                }
+                (InputMode::ThemePicker, KeyEvent::Escape) => {
+                    self.mode = self.return_mode();
                 }
 
                 (InputMode::ConfirmQuit, KeyEvent::Char('q') | KeyEvent::Enter) => {
@@ -602,6 +637,8 @@ impl ClientHandler {
             search_result_count: self.search_results.len(),
             search_index: self.search_index,
             splash_frame: self.splash_frame,
+            theme: crate::tui::themes::ALL[self.theme_index].1,
+            theme_picker_index: self.theme_picker_index,
         };
 
         match terminal.draw(|frame| {
@@ -757,6 +794,7 @@ impl server::Handler for ClientHandler {
             let confessions = self.confessions.clone();
             let writer = self.writer.clone();
             let splash_done = self.splash_done.clone();
+            let theme_index = self.theme_index;
             tokio::spawn(async move {
                 use crate::tui::splash::TOTAL_FRAMES;
                 for f in 1..TOTAL_FRAMES {
@@ -790,6 +828,8 @@ impl server::Handler for ClientHandler {
                         search_result_count: 0,
                         search_index: 0,
                         splash_frame: f,
+                        theme: crate::tui::themes::ALL[theme_index].1,
+                        theme_picker_index: 0,
                     };
                     let _ = term.draw(|frame| {
                         crate::tui::render(frame, &state);
@@ -863,6 +903,8 @@ impl server::Handler for ClientHandler {
                         search_result_count: 0,
                         search_index: 0,
                         splash_frame: 0,
+                        theme: crate::tui::themes::ALL[theme_index].1,
+                        theme_picker_index: 0,
                     };
                     let _ = term.draw(|frame| {
                         crate::tui::render(frame, &state);

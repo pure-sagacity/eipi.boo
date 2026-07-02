@@ -8,6 +8,7 @@ pub enum InputMode {
     ComposeReply,
     Search,
     SearchResults,
+    ThemePicker,
     ConfirmQuit,
 }
 
