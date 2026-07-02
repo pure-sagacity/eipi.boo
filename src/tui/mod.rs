@@ -3,6 +3,7 @@ mod card_view;
 mod compose;
 mod confession_box;
 mod glow;
+mod help;
 mod reply_panel;
 pub(crate) mod splash;
 mod statusline;
@@ -226,5 +227,9 @@ pub fn render(frame: &mut Frame, state: &RenderState) {
 
     if state.mode == InputMode::ThemePicker {
         theme_picker::render(frame, state.theme_picker_index, theme, area);
+    }
+
+    if state.mode == InputMode::Help {
+        help::render(frame, area, theme);
     }
 }

@@ -41,6 +41,7 @@ pub(crate) struct ClientHandler {
     card_index: usize,
     came_from_card: bool,
     message: Option<String>,
+    help_return_mode: InputMode,
     last_known_count: usize,
     search_buf: String,
     search_results: Vec<usize>,
@@ -75,6 +76,7 @@ impl ClientHandler {
             card_index: 0,
             came_from_card: false,
             message: None,
+            help_return_mode: InputMode::Browse,
             last_known_count: 0,
             search_buf: String::new(),
             search_results: Vec::new(),
@@ -312,6 +314,12 @@ impl ClientHandler {
             }
 
             match (&self.mode, &event) {
+                (
+                    InputMode::Help,
+                    KeyEvent::Escape | KeyEvent::Char('q') | KeyEvent::Char('?') | KeyEvent::Enter,
+                ) => {
+                    self.mode = self.help_return_mode;
+                }
                 (InputMode::Browse, KeyEvent::Char('q')) => {
                     self.mode = InputMode::ConfirmQuit;
                 }
@@ -415,11 +423,15 @@ impl ClientHandler {
                     self.mode = InputMode::ThemePicker;
                 }
 
-                (InputMode::Browse, KeyEvent::Char('?')) => {
-                    self.message = Some(
-                        "bugs/features → https://github.com/pwnwriter/eipi.boo/issues/new"
-                            .to_string(),
-                    );
+                (
+                    InputMode::Browse
+                    | InputMode::CardView
+                    | InputMode::ViewReplies
+                    | InputMode::SearchResults,
+                    KeyEvent::Char('?'),
+                ) => {
+                    self.help_return_mode = self.mode;
+                    self.mode = InputMode::Help;
                 }
 
                 (InputMode::ThemePicker, KeyEvent::Up | KeyEvent::Char('k')) => {

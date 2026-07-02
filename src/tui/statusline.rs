@@ -161,7 +161,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
             spans.extend(hint("⏎", "replies"));
             spans.extend(hint("esc", "back"));
         }
-        InputMode::ConfirmQuit | InputMode::Splash | InputMode::ThemePicker => {}
+        InputMode::ConfirmQuit | InputMode::Splash | InputMode::ThemePicker | InputMode::Help => {}
     }
 
     let line = Line::from(spans).centered();

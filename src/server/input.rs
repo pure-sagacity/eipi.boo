@@ -3,6 +3,7 @@ pub enum InputMode {
     Splash,
     Browse,
     CardView,
+    Help,
     Compose,
     ViewReplies,
     ComposeReply,
