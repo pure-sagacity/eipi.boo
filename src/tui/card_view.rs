@@ -51,11 +51,11 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     let cx = area.x + area.width.saturating_sub(card_w as u16) / 2;
     let cy = area.y + area.height.saturating_sub(total_h) / 2;
 
-    let border = Style::default().fg(theme.border);
-    let dim = Style::default().fg(theme.border_dim);
+    let border = Style::default().fg(theme.text_dim);
+    let dim = Style::default().fg(theme.text_dim);
     let text_style = Style::default().fg(theme.text);
-    let age_style = Style::default().fg(theme.border);
-    let char_style = Style::default().fg(theme.border);
+    let age_style = Style::default().fg(theme.text_secondary);
+    let char_style = Style::default().fg(theme.text_secondary);
 
     let age = confession::time_ago(&c.created_at);
     let heart = if has_voted { "♥" } else { "♡" };
