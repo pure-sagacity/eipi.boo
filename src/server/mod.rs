@@ -15,10 +15,10 @@ use russh::server::{self, Server as _};
 use crate::db;
 use handler::ClientHandler;
 
-pub(crate) struct AppState {
-    pub(crate) db: Mutex<rusqlite::Connection>,
-    pub(crate) online: AtomicUsize,
-    pub(crate) notify: broadcast::Sender<()>,
+pub struct AppState {
+    pub db: Mutex<rusqlite::Connection>,
+    pub online: AtomicUsize,
+    pub notify: broadcast::Sender<()>,
 }
 
 struct SshServer {
@@ -77,7 +77,8 @@ pub async fn run() -> Result<()> {
         ..Default::default()
     });
 
-    crate::helper::web::write_index();
+    // spawn HTTP server for shareable confession links
+    tokio::spawn(crate::helper::web::serve(state.clone()));
 
     info!("Starting eipi.boo SSH server on {}", listen_addr);
     info!(

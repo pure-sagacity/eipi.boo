@@ -5,7 +5,7 @@ mod reply;
 
 use rusqlite::{Connection, Result as SqlResult};
 
-pub use confession::{get_all, insert, posts_today, stats};
+pub use confession::{get_all, get_by_id, insert, posts_today, stats};
 pub use pref::{get_theme, set_theme};
 pub use reaction::{get_reaction, set_reaction};
 pub use reply::{get_replies, insert_reply};

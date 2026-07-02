@@ -51,6 +51,10 @@ pub const HELP_KEYBINDS: &[KeybindHint] = &[
         key: "G",
         label: "jump to latest",
     },
+    KeybindHint {
+        key: "s",
+        label: "share link",
+    },
 ];
 
 const BROWSE_HINTS: &[KeybindHint] = &[

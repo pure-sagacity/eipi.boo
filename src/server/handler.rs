@@ -373,6 +373,14 @@ impl ClientHandler {
         }
     }
 
+    fn show_share_link(&mut self) {
+        let base =
+            std::env::var("EIPI_BASE_URL").unwrap_or_else(|_| "https://eipi.boo".to_string());
+        if let Some(id) = self.selected_confession_id() {
+            self.message = Some(format!("{}/c/{}", base, id));
+        }
+    }
+
     fn open_reaction_picker(&mut self) {
         let Some(confession_id) = self.selected_confession_id() else {
             return;
@@ -443,6 +451,7 @@ impl ClientHandler {
             KeyEvent::Char('T') => self.open_theme_picker(),
             KeyEvent::Char('?') => self.open_help(),
             KeyEvent::Char('f') => self.open_reaction_picker(),
+            KeyEvent::Char('s') => self.show_share_link(),
             _ => {}
         }
     }
@@ -487,6 +496,7 @@ impl ClientHandler {
             KeyEvent::Char('T') => self.open_theme_picker(),
             KeyEvent::Char('?') => self.open_help(),
             KeyEvent::Char('f') => self.open_reaction_picker(),
+            KeyEvent::Char('s') => self.show_share_link(),
             _ => {}
         }
     }
@@ -564,6 +574,7 @@ impl ClientHandler {
             KeyEvent::Char('r') => self.open_reply_compose(),
             KeyEvent::Char('?') => self.open_help(),
             KeyEvent::Char('f') => self.open_reaction_picker(),
+            KeyEvent::Char('s') => self.show_share_link(),
             _ => {}
         }
     }
@@ -665,6 +676,7 @@ impl ClientHandler {
             }
             KeyEvent::Char('?') => self.open_help(),
             KeyEvent::Char('f') => self.open_reaction_picker(),
+            KeyEvent::Char('s') => self.show_share_link(),
             _ => {}
         }
     }

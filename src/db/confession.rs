@@ -32,6 +32,32 @@ pub fn get_all(conn: &Connection) -> Vec<Confession> {
     .collect()
 }
 
+pub fn get_by_id(conn: &Connection, id: i64) -> Option<Confession> {
+    let reaction_counts = super::reaction::reaction_counts(conn);
+    conn.query_row(
+        "SELECT c.id, c.text, c.x, c.y,
+                (SELECT COUNT(*) FROM replies r WHERE r.confession_id = c.id),
+                c.created_at
+         FROM confessions c WHERE c.id = ?1",
+        params![id],
+        |row| {
+            Ok(Confession {
+                id: row.get(0)?,
+                text: row.get(1)?,
+                x: row.get(2)?,
+                y: row.get(3)?,
+                reply_count: row.get(4)?,
+                created_at: row.get(5)?,
+                reactions: reaction_counts
+                    .get(&row.get::<_, i64>(0)?)
+                    .cloned()
+                    .unwrap_or_default(),
+            })
+        },
+    )
+    .ok()
+}
+
 pub fn insert(
     conn: &Connection,
     text: &str,
