@@ -44,7 +44,7 @@ pub fn random_position(confessions: &[Confession], new_text: &str) -> (i64, i64)
     let count = confessions.len() as f64;
     let new_w = BOX_WIDTH as i64;
     let new_h = confession_height(new_text) as i64;
-    let padding: i64 = 2;
+    let padding: i64 = 4;
 
     let cols = (count.sqrt() * 1.5).max(3.0) as i64;
     let spread_x = cols * (BOX_WIDTH as i64 + padding + 4);
