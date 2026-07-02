@@ -712,6 +712,7 @@ impl ClientHandler {
                         | InputMode::ViewReplies
                 )
                 && event != KeyEvent::Char('q')
+                && event != KeyEvent::Char('s')
             {
                 self.message = None;
             }
