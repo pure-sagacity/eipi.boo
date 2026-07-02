@@ -80,7 +80,14 @@ pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect, theme:
 }
 
 /// Render glow around popular confessions on the 2D canvas.
-pub fn render(frame: &mut Frame, confessions: &[Confession], cam_x: i64, cam_y: i64, area: Rect, theme: &Theme) {
+pub fn render(
+    frame: &mut Frame,
+    confessions: &[Confession],
+    cam_x: i64,
+    cam_y: i64,
+    area: Rect,
+    theme: &Theme,
+) {
     for c in confessions {
         if c.votes <= consts::VOTES_GLOW {
             continue;

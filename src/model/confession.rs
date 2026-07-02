@@ -102,5 +102,6 @@ pub fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
 
 pub fn confession_height(text: &str) -> u16 {
     let lines = wrap_text(text, BOX_INNER_WIDTH);
-    lines.len() as u16 + 2 // +2 for top/bottom border
+    // cloud shape: top cap + bulge top + text + bulge bottom + bottom cap + thought bubble
+    lines.len() as u16 + 5
 }

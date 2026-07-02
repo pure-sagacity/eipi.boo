@@ -35,9 +35,7 @@ pub fn render(frame: &mut Frame, selected: usize, theme: &Theme, area: Rect) {
         let prefix = if is_selected { " ▶ " } else { "   " };
 
         let style = if is_selected {
-            Style::default()
-                .fg(theme.text)
-                .add_modifier(Modifier::BOLD)
+            Style::default().fg(theme.text).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(theme.text_secondary)
         };

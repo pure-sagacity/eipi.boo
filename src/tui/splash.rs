@@ -30,10 +30,7 @@ fn build_key(label: &str, active: bool, theme: &Theme) -> Span<'static> {
             Style::default().fg(Color::Black).bg(theme.accent_rose),
         )
     } else {
-        Span::styled(
-            format!(" {} ", label),
-            Style::default().fg(theme.border),
-        )
+        Span::styled(format!(" {} ", label), Style::default().fg(theme.border))
     }
 }
 

@@ -22,10 +22,7 @@ fn centered_popup(frame: &mut Frame, area: Rect, w: u16, h: u16) -> Rect {
 
 fn text_input(frame: &mut Frame, buf: &str, placeholder: &str, inner: Rect, theme: &Theme) {
     let (text, style) = if buf.is_empty() {
-        (
-            placeholder.to_string(),
-            Style::default().fg(theme.text_dim),
-        )
+        (placeholder.to_string(), Style::default().fg(theme.text_dim))
     } else {
         (format!("{}_", buf), Style::default().fg(theme.text))
     };
@@ -80,9 +77,7 @@ pub fn render_quit(frame: &mut Frame, area: Rect, theme: &Theme) {
         Line::from(""),
         Line::from(Span::styled(
             "wait, leaving already? :(",
-            Style::default()
-                .fg(theme.text)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             "did you confess something?",

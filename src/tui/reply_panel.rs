@@ -41,11 +41,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
 
     let p = Paragraph::new(confession.text.as_str())
         .block(block)
-        .style(
-            Style::default()
-                .fg(theme.text)
-                .add_modifier(Modifier::BOLD),
-        )
+        .style(Style::default().fg(theme.text).add_modifier(Modifier::BOLD))
         .wrap(Wrap { trim: true });
     frame.render_widget(p, confession_area);
 

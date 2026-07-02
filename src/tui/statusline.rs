@@ -12,7 +12,10 @@ use super::RenderState;
 fn hint<'a>(key: &'a str, label: &'a str) -> Vec<Span<'a>> {
     vec![
         Span::styled(key, Style::default().fg(Color::White)),
-        Span::styled(format!(" {}   ", label), Style::default().fg(Color::DarkGray)),
+        Span::styled(
+            format!(" {}   ", label),
+            Style::default().fg(Color::DarkGray),
+        ),
     ]
 }
 
@@ -44,10 +47,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
                 Style::default().fg(theme.online),
             ),
             Span::styled(" · ", Style::default().fg(theme.border_dim)),
-            Span::styled(
-                "pwnwriter/eipi.boo",
-                Style::default().fg(theme.border),
-            ),
+            Span::styled("pwnwriter/eipi.boo", Style::default().fg(theme.border)),
         ])
         .centered(),
         _ => Line::from(""),
@@ -117,7 +117,10 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         }
         InputMode::ComposeReply => {
             if state.reply_name_phase {
-                spans.push(Span::styled("name (optional): ", Style::default().fg(theme.text_dim)));
+                spans.push(Span::styled(
+                    "name (optional): ",
+                    Style::default().fg(theme.text_dim),
+                ));
                 spans.push(Span::styled(
                     format!("{}_", state.reply_name_buf),
                     Style::default().fg(theme.text),
