@@ -39,7 +39,12 @@ pub fn render(frame: &mut Frame, selected: usize, theme: &Theme, area: Rect) {
 
     let mut lines: Vec<Line> = Vec::new();
 
-    for (i, (name, t)) in themes::ALL.iter().enumerate().skip(scroll).take(visible_items) {
+    for (i, (name, t)) in themes::ALL
+        .iter()
+        .enumerate()
+        .skip(scroll)
+        .take(visible_items)
+    {
         let is_selected = i == selected;
         let prefix = if is_selected { " ▶ " } else { "   " };
 
