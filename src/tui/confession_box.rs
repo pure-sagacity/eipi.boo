@@ -5,7 +5,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::widgets::Widget;
 
 use crate::helper::consts;
-use crate::model::confession::{self, Confession, wrap_text};
+use crate::model::confession::{self, Confession, love_reactions, total_reactions, wrap_text};
 
 use super::theme::Theme;
 
@@ -96,43 +96,47 @@ impl Widget for Cloud {
     }
 }
 
-pub fn render(
-    frame: &mut Frame,
-    c: &Confession,
-    area: Rect,
-    selected: bool,
-    has_voted: bool,
-    theme: &Theme,
-) {
+pub fn render(frame: &mut Frame, c: &Confession, area: Rect, selected: bool, theme: &Theme) {
+    let reaction_count = total_reactions(c);
     let border_style = if selected {
         Style::default()
             .fg(theme.accent)
             .add_modifier(Modifier::BOLD)
-    } else if c.votes > consts::VOTES_MAGENTA {
+    } else if reaction_count > consts::VOTES_MAGENTA {
         Style::default()
             .fg(theme.glow_high)
             .add_modifier(Modifier::BOLD)
-    } else if c.votes > consts::VOTES_CYAN {
+    } else if reaction_count > consts::VOTES_CYAN {
         Style::default().fg(theme.glow_mid)
     } else {
         Style::default().fg(theme.text_dim)
     };
 
-    let text_style = if c.votes > consts::VOTES_MAGENTA {
+    let text_style = if reaction_count > consts::VOTES_MAGENTA {
         Style::default().fg(theme.text).add_modifier(Modifier::BOLD)
-    } else if c.votes > consts::VOTES_CYAN {
+    } else if reaction_count > consts::VOTES_CYAN {
         Style::default().fg(theme.text)
     } else {
         Style::default().fg(theme.text_secondary)
     };
 
-    let heart = if has_voted { "󰋑" } else { "♥" };
+    let love_count = love_reactions(c);
     let reply_str = if c.reply_count > 0 {
         format!("󰍧 {}  ", c.reply_count)
     } else {
         String::new()
     };
-    let vote_display = format!("{}{} {}", reply_str, heart, c.votes);
+    let love_str = if love_count > 0 {
+        format!("♥ {}  ", love_count)
+    } else {
+        String::new()
+    };
+    let reaction_str = if reaction_count > 0 {
+        format!("✦ {}  ", reaction_count)
+    } else {
+        String::new()
+    };
+    let vote_display = format!("{}{}{}", reply_str, love_str, reaction_str);
 
     let age = confession::time_ago(&c.created_at);
     let inner_w = (area.width as usize).saturating_sub(4);

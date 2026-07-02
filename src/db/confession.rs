@@ -3,9 +3,10 @@ use rusqlite::{Connection, Result as SqlResult, params};
 use crate::model::confession::Confession;
 
 pub fn get_all(conn: &Connection) -> Vec<Confession> {
+    let reaction_counts = super::reaction::reaction_counts(conn);
     let mut stmt = conn
         .prepare(
-            "SELECT c.id, c.text, c.x, c.y, c.votes,
+            "SELECT c.id, c.text, c.x, c.y,
                     (SELECT COUNT(*) FROM replies r WHERE r.confession_id = c.id),
                     c.created_at
              FROM confessions c ORDER BY c.id",
@@ -18,9 +19,12 @@ pub fn get_all(conn: &Connection) -> Vec<Confession> {
             text: row.get(1)?,
             x: row.get(2)?,
             y: row.get(3)?,
-            votes: row.get(4)?,
-            reply_count: row.get(5)?,
-            created_at: row.get(6)?,
+            reply_count: row.get(4)?,
+            created_at: row.get(5)?,
+            reactions: reaction_counts
+                .get(&row.get::<_, i64>(0)?)
+                .cloned()
+                .unwrap_or_default(),
         })
     })
     .unwrap()
@@ -45,12 +49,12 @@ pub fn insert(
         text: text.to_string(),
         x,
         y,
-        votes: 0,
         reply_count: 0,
         created_at: chrono::Utc::now()
             .naive_utc()
             .format("%Y-%m-%d %H:%M:%S")
             .to_string(),
+        reactions: Vec::new(),
     })
 }
 

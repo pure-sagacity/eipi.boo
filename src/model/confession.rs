@@ -1,12 +1,14 @@
+use super::reaction::ReactionCount;
+
 #[derive(Clone, Debug)]
 pub struct Confession {
     pub id: i64,
     pub text: String,
     pub x: i64,
     pub y: i64,
-    pub votes: i64,
     pub reply_count: i64,
     pub created_at: String,
+    pub reactions: Vec<ReactionCount>,
 }
 
 pub fn time_ago(created_at: &str) -> String {
@@ -104,4 +106,21 @@ pub fn confession_height(text: &str) -> u16 {
     let lines = wrap_text(text, BOX_INNER_WIDTH);
     // cloud shape: top cap + bulge top + text + bulge bottom + bottom cap + thought bubble
     lines.len() as u16 + 5
+}
+
+pub fn total_reactions(confession: &Confession) -> i64 {
+    confession
+        .reactions
+        .iter()
+        .map(|reaction| reaction.count)
+        .sum()
+}
+
+pub fn love_reactions(confession: &Confession) -> i64 {
+    confession
+        .reactions
+        .iter()
+        .find(|reaction| reaction.token == "♥")
+        .map(|reaction| reaction.count)
+        .unwrap_or(0)
 }

@@ -1,14 +1,14 @@
 mod confession;
 mod pref;
+mod reaction;
 mod reply;
-mod vote;
 
 use rusqlite::{Connection, Result as SqlResult};
 
 pub use confession::{get_all, insert, posts_today, stats};
 pub use pref::{get_theme, set_theme};
+pub use reaction::{get_reaction, set_reaction};
 pub use reply::{get_replies, insert_reply};
-pub use vote::{upvote, voted_confession_ids};
 
 pub fn init(path: &str) -> SqlResult<Connection> {
     let conn = Connection::open(path)?;
@@ -39,6 +39,14 @@ pub fn init(path: &str) -> SqlResult<Connection> {
         CREATE TABLE IF NOT EXISTS preferences (
             fingerprint TEXT PRIMARY KEY,
             theme TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS reactions (
+            confession_id INTEGER NOT NULL,
+            reactor_fingerprint TEXT NOT NULL,
+            reaction TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (confession_id, reactor_fingerprint),
+            FOREIGN KEY (confession_id) REFERENCES confessions(id)
         );",
     )?;
     Ok(conn)

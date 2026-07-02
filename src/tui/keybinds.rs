@@ -28,12 +28,12 @@ pub const HELP_KEYBINDS: &[KeybindHint] = &[
         label: "open feed",
     },
     KeybindHint {
-        key: "v",
-        label: "upvote",
-    },
-    KeybindHint {
         key: "n",
         label: "new confession",
+    },
+    KeybindHint {
+        key: "f",
+        label: "open reactions",
     },
     KeybindHint {
         key: "/",
@@ -67,10 +67,6 @@ const BROWSE_HINTS: &[KeybindHint] = &[
         label: "select",
     },
     KeybindHint {
-        key: "v",
-        label: "vote",
-    },
-    KeybindHint {
         key: "⏎",
         label: "replies",
     },
@@ -85,6 +81,10 @@ const BROWSE_HINTS: &[KeybindHint] = &[
     KeybindHint {
         key: "n",
         label: "confess",
+    },
+    KeybindHint {
+        key: "f",
+        label: "react",
     },
     KeybindHint {
         key: "T",
@@ -102,10 +102,6 @@ const CARD_VIEW_HINTS: &[KeybindHint] = &[
         label: "prev/next",
     },
     KeybindHint {
-        key: "v",
-        label: "vote",
-    },
-    KeybindHint {
         key: "⏎",
         label: "replies",
     },
@@ -116,6 +112,10 @@ const CARD_VIEW_HINTS: &[KeybindHint] = &[
     KeybindHint {
         key: "n",
         label: "confess",
+    },
+    KeybindHint {
+        key: "f",
+        label: "react",
     },
     KeybindHint {
         key: "T",
@@ -133,12 +133,12 @@ const VIEW_REPLIES_HINTS: &[KeybindHint] = &[
         label: "reply",
     },
     KeybindHint {
-        key: "↑↓/jk",
-        label: "scroll",
+        key: "f",
+        label: "react",
     },
     KeybindHint {
-        key: "v",
-        label: "vote",
+        key: "↑↓/jk",
+        label: "scroll",
     },
     KeybindHint {
         key: "esc",
@@ -163,8 +163,8 @@ const SEARCH_RESULTS_HINTS: &[KeybindHint] = &[
         label: "prev/next",
     },
     KeybindHint {
-        key: "v",
-        label: "vote",
+        key: "f",
+        label: "react",
     },
     KeybindHint {
         key: "⏎",
@@ -198,6 +198,25 @@ const COMPOSE_REPLY_NAME_HINTS: &[KeybindHint] = &[
     },
 ];
 
+const REACTION_PICKER_HINTS: &[KeybindHint] = &[
+    KeybindHint {
+        key: "←→/hl",
+        label: "move",
+    },
+    KeybindHint {
+        key: "↑↓/jk",
+        label: "row",
+    },
+    KeybindHint {
+        key: "⏎",
+        label: "react",
+    },
+    KeybindHint {
+        key: "esc",
+        label: "cancel",
+    },
+];
+
 pub fn status_hints(mode: InputMode, reply_name_phase: bool) -> &'static [KeybindHint] {
     match mode {
         InputMode::Browse => BROWSE_HINTS,
@@ -208,6 +227,7 @@ pub fn status_hints(mode: InputMode, reply_name_phase: bool) -> &'static [Keybin
         InputMode::Compose => COMPOSE_HINTS,
         InputMode::ComposeReply if reply_name_phase => COMPOSE_REPLY_NAME_HINTS,
         InputMode::ComposeReply => COMPOSE_HINTS,
+        InputMode::ReactionPicker => REACTION_PICKER_HINTS,
         InputMode::ConfirmQuit | InputMode::Splash | InputMode::ThemePicker | InputMode::Help => {
             &[]
         }

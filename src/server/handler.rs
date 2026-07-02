@@ -14,6 +14,7 @@ use sha2::{Digest, Sha256};
 
 use crate::db;
 use crate::model::confession::{self, Confession};
+use crate::model::reaction;
 use crate::model::reply::{self, Reply};
 use crate::tui::canvas;
 use crate::tui::{RenderState, TermWriter};
@@ -42,6 +43,8 @@ pub(crate) struct ClientHandler {
     came_from_card: bool,
     message: Option<String>,
     help_return_mode: InputMode,
+    reaction_return_mode: InputMode,
+    reaction_picker_index: usize,
     last_known_count: usize,
     search_buf: String,
     search_results: Vec<usize>,
@@ -77,6 +80,8 @@ impl ClientHandler {
             came_from_card: false,
             message: None,
             help_return_mode: InputMode::Browse,
+            reaction_return_mode: InputMode::Browse,
+            reaction_picker_index: 0,
             last_known_count: 0,
             search_buf: String::new(),
             search_results: Vec::new(),
@@ -161,27 +166,6 @@ impl ClientHandler {
                 return;
             }
         }
-    }
-
-    fn upvote_selected(&mut self) {
-        let Some(idx) = self.selected else { return };
-        let Some(confession) = self.confessions.get(idx) else {
-            return;
-        };
-        let confession_id = confession.id;
-        let fp = self.fingerprint_str();
-
-        let db = self.shared.db.lock();
-        match db::upvote(&db, confession_id, fp) {
-            Ok(new_votes) => {
-                self.message = Some(format!("Upvoted! (♥ {})", new_votes));
-            }
-            Err(e) => {
-                self.message = Some(format!("Can't vote: {}", e));
-            }
-        }
-        drop(db);
-        self.reload_confessions();
     }
 
     fn open_replies(&mut self) {
@@ -365,6 +349,64 @@ impl ClientHandler {
         self.reply_name_phase = true;
     }
 
+    fn selected_confession_id(&self) -> Option<i64> {
+        let mode = if self.mode == InputMode::ReactionPicker {
+            self.reaction_return_mode
+        } else {
+            self.mode
+        };
+
+        match mode {
+            InputMode::Browse => self
+                .selected
+                .and_then(|idx| self.confessions.get(idx))
+                .map(|confession| confession.id),
+            InputMode::CardView | InputMode::SearchResults => self
+                .confessions
+                .get(self.card_index)
+                .map(|confession| confession.id),
+            InputMode::ViewReplies => self
+                .viewing_confession
+                .and_then(|idx| self.confessions.get(idx))
+                .map(|confession| confession.id),
+            _ => None,
+        }
+    }
+
+    fn open_reaction_picker(&mut self) {
+        let Some(confession_id) = self.selected_confession_id() else {
+            return;
+        };
+
+        self.reaction_picker_index = {
+            let db = self.shared.db.lock();
+            db::get_reaction(&db, confession_id, self.fingerprint_str())
+                .ok()
+                .flatten()
+                .and_then(|token| reaction::find_index(&token))
+                .unwrap_or(0)
+        };
+        self.reaction_return_mode = self.mode;
+        self.mode = InputMode::ReactionPicker;
+    }
+
+    fn submit_reaction(&mut self) {
+        let Some(confession_id) = self.selected_confession_id() else {
+            return;
+        };
+
+        let token = reaction::token_at(self.reaction_picker_index);
+        let db = self.shared.db.lock();
+        match db::set_reaction(&db, confession_id, token, self.fingerprint_str()) {
+            Ok(()) => self.message = Some(format!("reacted with {}", token)),
+            Err(err) => self.message = Some(format!("reaction failed: {}", err)),
+        }
+        drop(db);
+
+        self.reload_confessions();
+        self.mode = self.reaction_return_mode;
+    }
+
     fn handle_browse_event(&mut self, event: &KeyEvent) {
         match event {
             KeyEvent::Char('q') => self.mode = InputMode::ConfirmQuit,
@@ -383,7 +425,6 @@ impl ClientHandler {
                 self.came_from_card = false;
                 self.open_replies();
             }
-            KeyEvent::Char('v') => self.upvote_selected(),
             KeyEvent::Char('n') => self.open_compose(false),
             KeyEvent::MouseClick(sx, sy) => self.select_at_screen(*sx, *sy),
             KeyEvent::Char(' ') if !self.confessions.is_empty() => {
@@ -401,6 +442,7 @@ impl ClientHandler {
             KeyEvent::Char('/') => self.open_search(),
             KeyEvent::Char('T') => self.open_theme_picker(),
             KeyEvent::Char('?') => self.open_help(),
+            KeyEvent::Char('f') => self.open_reaction_picker(),
             _ => {}
         }
     }
@@ -431,10 +473,6 @@ impl ClientHandler {
                 }
                 self.selected = Some(self.card_index);
             }
-            KeyEvent::Char('v') => {
-                self.selected = Some(self.card_index);
-                self.upvote_selected();
-            }
             KeyEvent::Enter => {
                 self.selected = Some(self.card_index);
                 self.came_from_card = true;
@@ -448,6 +486,7 @@ impl ClientHandler {
             KeyEvent::Char('/') => self.open_search(),
             KeyEvent::Char('T') => self.open_theme_picker(),
             KeyEvent::Char('?') => self.open_help(),
+            KeyEvent::Char('f') => self.open_reaction_picker(),
             _ => {}
         }
     }
@@ -492,6 +531,27 @@ impl ClientHandler {
         }
     }
 
+    fn handle_reaction_picker_event(&mut self, event: &KeyEvent) {
+        let total = reaction::ALL.len();
+        match event {
+            KeyEvent::Escape => self.mode = self.reaction_return_mode,
+            KeyEvent::Enter => self.submit_reaction(),
+            KeyEvent::Left | KeyEvent::Char('h') => {
+                self.reaction_picker_index = self.reaction_picker_index.saturating_sub(1);
+            }
+            KeyEvent::Right | KeyEvent::Char('l') if self.reaction_picker_index + 1 < total => {
+                self.reaction_picker_index += 1;
+            }
+            KeyEvent::Up | KeyEvent::Char('k') => {
+                self.reaction_picker_index = self.reaction_picker_index.saturating_sub(4);
+            }
+            KeyEvent::Down | KeyEvent::Char('j') => {
+                self.reaction_picker_index = (self.reaction_picker_index + 4).min(total - 1);
+            }
+            _ => {}
+        }
+    }
+
     fn handle_view_replies_event(&mut self, event: &KeyEvent) {
         match event {
             KeyEvent::Escape | KeyEvent::Char('q') => self.close_replies(),
@@ -501,9 +561,9 @@ impl ClientHandler {
             KeyEvent::Down | KeyEvent::Char('j') if self.reply_scroll + 1 < self.replies.len() => {
                 self.reply_scroll += 1;
             }
-            KeyEvent::Char('v') => self.upvote_selected(),
             KeyEvent::Char('r') => self.open_reply_compose(),
             KeyEvent::Char('?') => self.open_help(),
+            KeyEvent::Char('f') => self.open_reaction_picker(),
             _ => {}
         }
     }
@@ -594,10 +654,6 @@ impl ClientHandler {
                 self.card_index = self.search_results[self.search_index];
                 self.selected = Some(self.card_index);
             }
-            KeyEvent::Char('v') => {
-                self.selected = Some(self.card_index);
-                self.upvote_selected();
-            }
             KeyEvent::Enter => {
                 self.selected = Some(self.card_index);
                 self.came_from_card = true;
@@ -608,6 +664,7 @@ impl ClientHandler {
                 self.mode = InputMode::Browse;
             }
             KeyEvent::Char('?') => self.open_help(),
+            KeyEvent::Char('f') => self.open_reaction_picker(),
             _ => {}
         }
     }
@@ -635,7 +692,13 @@ impl ClientHandler {
     fn process_input(&mut self, events: Vec<KeyEvent>) -> bool {
         for event in events {
             if self.message.is_some()
-                && (self.mode == InputMode::Browse || self.mode == InputMode::ViewReplies)
+                && matches!(
+                    self.mode,
+                    InputMode::Browse
+                        | InputMode::CardView
+                        | InputMode::SearchResults
+                        | InputMode::ViewReplies
+                )
                 && event != KeyEvent::Char('q')
             {
                 self.message = None;
@@ -646,6 +709,7 @@ impl ClientHandler {
                 InputMode::Browse => self.handle_browse_event(&event),
                 InputMode::CardView => self.handle_card_view_event(&event),
                 InputMode::ThemePicker => self.handle_theme_picker_event(&event),
+                InputMode::ReactionPicker => self.handle_reaction_picker_event(&event),
                 InputMode::ConfirmQuit => {
                     if self.handle_confirm_quit_event(&event) {
                         return true;
@@ -663,17 +727,14 @@ impl ClientHandler {
     }
 
     fn do_render(&mut self) -> Vec<u8> {
-        let fp = self.fingerprint_str().to_owned();
-
         let Some(terminal) = self.terminal.as_mut() else {
             debug!("do_render: no terminal initialized");
             return Vec::new();
         };
-        let (total_confessions, total_humans, voted_ids) = {
+        let (total_confessions, total_humans) = {
             let db = self.shared.db.lock();
             let stats = db::stats(&db);
-            let voted = db::voted_confession_ids(&db, &fp);
-            (stats.0, stats.1, voted)
+            (stats.0, stats.1)
         };
 
         let viewing = self
@@ -686,6 +747,7 @@ impl ClientHandler {
             cam_y: self.cam_y,
             selected: self.selected,
             mode: self.mode,
+            reaction_return_mode: self.reaction_return_mode,
             compose_buf: &self.compose_buf,
             reply_name_buf: &self.reply_name_buf,
             reply_name_phase: self.reply_name_phase,
@@ -693,7 +755,6 @@ impl ClientHandler {
             total_confessions,
             total_humans,
             online: self.shared.online.load(Ordering::Relaxed),
-            voted_ids: &voted_ids,
             replies: &self.replies,
             viewing_confession: viewing,
             reply_scroll: self.reply_scroll,
@@ -705,6 +766,8 @@ impl ClientHandler {
             splash_frame: self.splash_frame,
             theme: crate::tui::themes::ALL[self.theme_index].1,
             theme_picker_index: self.theme_picker_index,
+            reaction_picker_index: self.reaction_picker_index,
+            render_tick: chrono::Utc::now().timestamp() as u64,
         };
 
         match terminal.draw(|frame| {
@@ -898,6 +961,7 @@ impl server::Handler for ClientHandler {
                         cam_y: 0,
                         selected: None,
                         mode: InputMode::Splash,
+                        reaction_return_mode: InputMode::Browse,
                         compose_buf: "",
                         reply_name_buf: "",
                         reply_name_phase: false,
@@ -905,7 +969,6 @@ impl server::Handler for ClientHandler {
                         total_confessions: 0,
                         total_humans: 0,
                         online: shared.online.load(Ordering::Relaxed),
-                        voted_ids: &[],
                         replies: &[],
                         viewing_confession: None,
                         reply_scroll: 0,
@@ -917,6 +980,8 @@ impl server::Handler for ClientHandler {
                         splash_frame: f,
                         theme: crate::tui::themes::ALL[theme_index].1,
                         theme_picker_index: 0,
+                        reaction_picker_index: 0,
+                        render_tick: chrono::Utc::now().timestamp() as u64,
                     };
                     let _ = term.draw(|frame| {
                         crate::tui::render(frame, &state);
@@ -973,6 +1038,7 @@ impl server::Handler for ClientHandler {
                         cam_y,
                         selected,
                         mode: InputMode::Browse,
+                        reaction_return_mode: InputMode::Browse,
                         compose_buf: "",
                         reply_name_buf: "",
                         reply_name_phase: false,
@@ -980,7 +1046,6 @@ impl server::Handler for ClientHandler {
                         total_confessions,
                         total_humans,
                         online: shared.online.load(Ordering::Relaxed),
-                        voted_ids: &[],
                         replies: &[],
                         viewing_confession: None,
                         reply_scroll: 0,
@@ -992,6 +1057,8 @@ impl server::Handler for ClientHandler {
                         splash_frame: 0,
                         theme: crate::tui::themes::ALL[theme_index].1,
                         theme_picker_index: 0,
+                        reaction_picker_index: 0,
+                        render_tick: chrono::Utc::now().timestamp() as u64,
                     };
                     let _ = term.draw(|frame| {
                         crate::tui::render(frame, &state);

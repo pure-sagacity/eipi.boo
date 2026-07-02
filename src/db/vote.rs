@@ -14,6 +14,12 @@ pub fn upvote(conn: &Connection, confession_id: i64, fingerprint: &str) -> Resul
                 params![confession_id],
             )
             .map_err(|e| e.to_string())?;
+            conn.execute(
+                "INSERT OR IGNORE INTO reactions (confession_id, reactor_fingerprint, reaction)
+                 VALUES (?1, ?2, '♥')",
+                params![confession_id, fingerprint],
+            )
+            .map_err(|e| e.to_string())?;
 
             let votes: i64 = conn
                 .query_row(

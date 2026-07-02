@@ -4,6 +4,7 @@ pub enum InputMode {
     Browse,
     CardView,
     Help,
+    ReactionPicker,
     Compose,
     ViewReplies,
     ComposeReply,

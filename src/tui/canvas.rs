@@ -1,6 +1,6 @@
 use rand::RngExt;
 
-use crate::model::confession::{BOX_WIDTH, Confession, confession_height};
+use crate::model::confession::{BOX_WIDTH, Confession, confession_height, total_reactions};
 
 pub fn visible_confessions(
     confessions: &[Confession],
@@ -81,7 +81,8 @@ pub fn best_camera(confessions: &[Confession], width: u16, height: u16) -> (i64,
     let mut best_count = 0;
 
     let mut candidates: Vec<usize> = (0..confessions.len()).collect();
-    candidates.sort_by(|a, b| confessions[*b].votes.cmp(&confessions[*a].votes));
+    candidates
+        .sort_by(|a, b| total_reactions(&confessions[*b]).cmp(&total_reactions(&confessions[*a])));
     candidates.truncate(50);
 
     for &idx in &candidates {

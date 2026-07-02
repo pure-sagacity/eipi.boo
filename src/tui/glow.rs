@@ -3,7 +3,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 use crate::helper::consts;
-use crate::model::confession::{self, Confession};
+use crate::model::confession::{self, Confession, total_reactions};
 
 use super::theme::Theme;
 
@@ -19,13 +19,13 @@ fn sparkle_hash(x: i64, y: i64) -> u64 {
 }
 
 /// Render a 2-ring sparkle glow around a screen-space rectangle.
-pub fn render_ring(frame: &mut Frame, votes: i64, rect: Rect, clip: Rect, theme: &Theme) {
-    let density = if votes > consts::VOTES_MAGENTA {
+pub fn render_ring(frame: &mut Frame, reactions: i64, rect: Rect, clip: Rect, theme: &Theme) {
+    let density = if reactions > consts::VOTES_MAGENTA {
         consts::GLOW_DENSITY_HIGH
     } else {
         consts::GLOW_DENSITY_LOW
     };
-    let color = if votes > consts::VOTES_MAGENTA {
+    let color = if reactions > consts::VOTES_MAGENTA {
         theme.glow_high
     } else {
         theme.glow_mid
@@ -89,7 +89,8 @@ pub fn render(
     theme: &Theme,
 ) {
     for c in confessions {
-        if c.votes <= consts::VOTES_GLOW {
+        let reaction_total = total_reactions(c);
+        if reaction_total <= consts::VOTES_GLOW {
             continue;
         }
 
@@ -110,6 +111,6 @@ pub fn render(
             box_h,
         );
 
-        render_ring(frame, c.votes, screen_rect, area, theme);
+        render_ring(frame, reaction_total, screen_rect, area, theme);
     }
 }

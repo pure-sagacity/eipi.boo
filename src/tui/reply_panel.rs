@@ -24,17 +24,13 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
     let confession_area = chunks[0];
     let replies_area = chunks[1];
 
-    let heart = if state.voted_ids.contains(&confession.id) {
-        "󰋑"
-    } else {
-        "♥"
-    };
+    let reaction_total = confession::total_reactions(confession);
     let block = Block::bordered()
         .border_style(Style::default().fg(theme.accent))
         .title_bottom(
             Line::from(Span::styled(
-                format!("{} {}", heart, confession.votes),
-                Style::default().fg(theme.heart),
+                format!("✦ {}", reaction_total),
+                Style::default().fg(theme.accent_search),
             ))
             .right_aligned(),
         );

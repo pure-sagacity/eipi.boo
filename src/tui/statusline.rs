@@ -115,6 +115,7 @@ pub fn render(frame: &mut Frame, state: &RenderState, area: Rect) {
         }
         InputMode::Browse
         | InputMode::CardView
+        | InputMode::ReactionPicker
         | InputMode::Search
         | InputMode::ConfirmQuit
         | InputMode::Splash
