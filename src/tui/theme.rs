@@ -30,4 +30,24 @@ pub struct Theme {
     pub dot_red: Color,
     pub dot_yellow: Color,
     pub dot_green: Color,
+
+    // terminal colors (OSC escape sequences)
+    pub terminal_bg: &'static str, // hex like "#1e1e2e"
+    pub terminal_fg: &'static str, // hex like "#cdd6f4"
+}
+
+impl Theme {
+    /// Returns OSC escape bytes to set terminal bg/fg colors
+    pub fn osc_bytes(&self) -> Vec<u8> {
+        format!(
+            "\x1b]11;{}\x1b\\\x1b]10;{}\x1b\\",
+            self.terminal_bg, self.terminal_fg
+        )
+        .into_bytes()
+    }
+
+    /// Returns OSC escape bytes to reset terminal colors to default
+    pub fn osc_reset() -> Vec<u8> {
+        b"\x1b]111\x1b\\\x1b]110\x1b\\".to_vec()
+    }
 }

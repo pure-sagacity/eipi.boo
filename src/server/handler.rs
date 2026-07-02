@@ -672,6 +672,10 @@ impl ClientHandler {
         init_bytes
     }
 
+    fn theme_osc_bytes(&self) -> Vec<u8> {
+        crate::tui::themes::ALL[self.theme_index].1.osc_bytes()
+    }
+
     fn cleanup_bytes(&mut self) -> Vec<u8> {
         crossterm::execute!(
             self.writer,
@@ -680,7 +684,9 @@ impl ClientHandler {
             LeaveAlternateScreen
         )
         .ok();
-        self.writer.drain()
+        let mut bytes = crate::tui::theme::Theme::osc_reset();
+        bytes.extend(self.writer.drain());
+        bytes
     }
 }
 
@@ -773,6 +779,10 @@ impl server::Handler for ClientHandler {
 
         let init = self.init_terminal();
         let _ = session.data(channel_id, init);
+
+        // set terminal bg/fg colors
+        let osc = self.theme_osc_bytes();
+        let _ = session.data(channel_id, osc);
 
         let visible = self.visible_indices();
         if !visible.is_empty() {
@@ -983,6 +993,7 @@ impl server::Handler for ClientHandler {
             return Ok(());
         }
 
+        let prev_theme = self.theme_index;
         let should_quit = self.process_input(events);
 
         if should_quit {
@@ -992,6 +1003,12 @@ impl server::Handler for ClientHandler {
             }
             let _ = session.close(channel_id);
             return Ok(());
+        }
+
+        // send OSC to change terminal colors when theme changes
+        if self.theme_index != prev_theme {
+            let osc = self.theme_osc_bytes();
+            let _ = session.data(channel_id, osc);
         }
 
         self.reload_confessions();

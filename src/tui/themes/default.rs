@@ -25,4 +25,7 @@ pub const THEME: Theme = Theme {
     dot_red: Color::Red,
     dot_yellow: Color::Yellow,
     dot_green: Color::Green,
+
+    terminal_bg: "#1a1b26",
+    terminal_fg: "#c0caf5",
 };

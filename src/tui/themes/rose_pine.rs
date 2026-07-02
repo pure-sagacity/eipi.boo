@@ -26,4 +26,7 @@ pub const THEME: Theme = Theme {
     dot_red: Color::Indexed(204),    // love
     dot_yellow: Color::Indexed(222), // gold
     dot_green: Color::Indexed(150),  // pine
+
+    terminal_bg: "#191724",
+    terminal_fg: "#e0def4",
 };
