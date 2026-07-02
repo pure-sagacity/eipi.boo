@@ -8,8 +8,8 @@ pub const THEME: Theme = Theme {
     text_secondary: Color::Rgb(166, 173, 200), // subtext0: #a6adc8
     text_dim: Color::Rgb(108, 112, 134),       // overlay0: #6c7086
 
-    border: Color::Rgb(69, 71, 90),        // surface1: #45475a
-    border_dim: Color::Rgb(49, 50, 68),    // surface0: #313244
+    border: Color::Rgb(69, 71, 90),     // surface1: #45475a
+    border_dim: Color::Rgb(49, 50, 68), // surface0: #313244
 
     accent: Color::Rgb(249, 226, 175),        // yellow: #f9e2af
     accent_alt: Color::Rgb(148, 226, 213),    // teal: #94e2d5

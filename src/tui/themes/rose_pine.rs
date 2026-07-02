@@ -8,8 +8,8 @@ pub const THEME: Theme = Theme {
     text_secondary: Color::Rgb(144, 140, 170), // subtle: #908caa
     text_dim: Color::Rgb(110, 106, 134),       // muted: #6e6a86
 
-    border: Color::Rgb(57, 53, 82),        // highlight med: #393552
-    border_dim: Color::Rgb(33, 32, 46),    // highlight low: #21202e
+    border: Color::Rgb(57, 53, 82),     // highlight med: #393552
+    border_dim: Color::Rgb(33, 32, 46), // highlight low: #21202e
 
     accent: Color::Rgb(235, 188, 186),        // rose: #ebbcba
     accent_alt: Color::Rgb(156, 207, 216),    // foam: #9ccfd8

@@ -781,10 +781,9 @@ impl server::Handler for ClientHandler {
         if let Some(saved) = {
             let db = self.shared.db.lock();
             db::get_theme(&db, self.fingerprint_str())
-        }
-            && let Some(idx) = crate::tui::themes::ALL
-                .iter()
-                .position(|(name, _)| *name == saved)
+        } && let Some(idx) = crate::tui::themes::ALL
+            .iter()
+            .position(|(name, _)| *name == saved)
         {
             self.theme_index = idx;
         }
