@@ -6,7 +6,7 @@
 
 `eipi.boo`: An ssh app where you write confessions and they float around on a shared canvas. everyone sees the same world. you can react, reply, search, change themes, all from your terminal.
 
-built with [russh](https://github.com/Russh/russh) + [ratatui](https://github.com/ratatui/ratatui) in rust.
+built with [russh](https://github.com/Eugeny/russh) + [ratatui](https://github.com/ratatui/ratatui) in rust.
 
 https://github.com/user-attachments/assets/c5d62780-fa3a-46f6-9192-b60987526d7d
 
